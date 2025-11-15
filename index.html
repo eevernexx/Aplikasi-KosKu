@@ -6,7 +6,7 @@
     <title>KosKu - Pengelola Keuangan & Tugas</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         /* ========== RESET & VARIABLES ========== */
@@ -469,7 +469,29 @@
             background: #1a2e1a;
         }
 
-        /* ========== TABLE ========== */
+        /* ========== CHARTS ========== */
+        .chart-container {
+            margin-top: 20px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .chart-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .canvas-chart {
+            max-width: 100%;
+            height: 300px;
+        }
+
+        /* ========== ADVICE SECTION ========== */
         .advice-section {
             margin-top: 30px;
             padding: 20px;
@@ -556,30 +578,6 @@
             font-size: 0.95em;
             line-height: 1.6;
             color: var(--text-secondary);
-        }
-
-        /* ========== CHARTS ========== */
-        .chart-container {
-            margin-top: 20px;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .chart-wrapper {
-            position: relative;
-            width: 100%;
-            height: 350px;
-        }
-
-        .chart-title {
-            font-size: 1.2em;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: var(--text-primary);
         }
 
         /* ========== TABLE ========== */
@@ -871,6 +869,10 @@
                         <div class="amount" id="dailyBalance" style="color: var(--success);">Rp 0</div>
                     </div>
                 </div>
+                <div class="chart-container">
+                    <div class="chart-title">Pengeluaran Hari Ini per Kategori</div>
+                    <canvas id="dailyPieChart" class="canvas-chart"></canvas>
+                </div>
                 <h3 style="margin-top: 20px;"><i class="fas fa-list"></i> Daftar Pengeluaran</h3>
                 <div id="dailyTransactions"></div>
                 <h3 style="margin-top: 20px;"><i class="fas fa-list"></i> Daftar Pemasukan</h3>
@@ -894,12 +896,15 @@
                         <div class="amount" id="monthlyBalance" style="color: var(--success);">Rp 0</div>
                     </div>
                 </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Pengeluaran per Kategori</div>
+                    <canvas id="monthlyExpenseChart" class="canvas-chart"></canvas>
+                </div>
 
                 <div class="chart-container">
-                    <div class="chart-title"><i class="fas fa-chart-line"></i> Grafik Harian Bulan Ini (Pengeluaran vs Pemasukan)</div>
-                    <div class="chart-wrapper">
-                        <canvas id="monthlyDailyChart"></canvas>
-                    </div>
+                    <div class="chart-title">Pemasukan per Sumber</div>
+                    <canvas id="monthlyIncomeChart" class="canvas-chart"></canvas>
                 </div>
 
                 <!-- NEW: Advice Section in Bulanan -->
@@ -935,10 +940,8 @@
                 </div>
 
                 <div class="chart-container">
-                    <div class="chart-title"><i class="fas fa-chart-line"></i> Grafik Bulanan (Pengeluaran vs Pemasukan)</div>
-                    <div class="chart-wrapper">
-                        <canvas id="yearlyChart"></canvas>
-                    </div>
+                    <div class="chart-title">Grafik Bulanan (Pengeluaran vs Pemasukan)</div>
+                    <canvas id="yearlyChart" class="canvas-chart"></canvas>
                 </div>
 
                 <div class="table-responsive">
@@ -986,8 +989,7 @@
         document.getElementById('incomeDate').valueAsDate = new Date();
 
         // Chart instances
-        let yearlyLineChart = null;
-        let monthlyDailyChart = null;
+        let dailyPieChart, monthlyExpenseChart, monthlyIncomeChart, yearlyLineChart;
 
         // ========== THEME MANAGEMENT (NEW) ==========
         function initTheme() {
@@ -1006,27 +1008,43 @@
                 body.classList.remove('dark-mode');
                 icon.className = 'fas fa-moon';
                 localStorage.setItem('theme', 'light');
+                // Update charts for light mode
+                updateChartColors('light');
             } else {
                 body.classList.add('dark-mode');
                 icon.className = 'fas fa-sun';
                 localStorage.setItem('theme', 'dark');
-            }
-            
-            // Re-render charts to apply new theme colors
-            try {
-                renderMonthly();
-            } catch (e) {
-                // ignore
-            }
-            try {
-                renderYearly();
-            } catch (e) {
-                // ignore
+                // Update charts for dark mode
+                updateChartColors('dark');
             }
         }
 
         function updateChartColors(mode) {
-            // Chart colors update removed - charts deleted
+            const bgColor = mode === 'dark' ? '#16181d' : 'white';
+            const textColor = mode === 'dark' ? '#E8E8E8' : '#2C3E50';
+            const gridColor = mode === 'dark' ? '#2a2a2a' : '#E0E0E0';
+            if (dailyPieChart) dailyPieChart.options.plugins.legend.labels.color = textColor;
+            if (monthlyExpenseChart) {
+                monthlyExpenseChart.options.scales.x.ticks.color = textColor;
+                monthlyExpenseChart.options.scales.y.ticks.color = textColor;
+                monthlyExpenseChart.options.plugins.legend.labels.color = textColor;
+                monthlyExpenseChart.options.plugins.title.color = textColor;
+                monthlyExpenseChart.update();
+            }
+            if (monthlyIncomeChart) {
+                monthlyIncomeChart.options.scales.x.ticks.color = textColor;
+                monthlyIncomeChart.options.scales.y.ticks.color = textColor;
+                monthlyIncomeChart.options.plugins.legend.labels.color = textColor;
+                monthlyIncomeChart.options.plugins.title.color = textColor;
+                monthlyIncomeChart.update();
+            }
+            if (yearlyLineChart) {
+                yearlyLineChart.options.scales.x.ticks.color = textColor;
+                yearlyLineChart.options.scales.y.ticks.color = textColor;
+                yearlyLineChart.options.plugins.legend.labels.color = textColor;
+                yearlyLineChart.options.plugins.title.color = textColor;
+                yearlyLineChart.update();
+            }
         }
 
         // ========== DEADLINE FIELD TOGGLE (NEW) ==========
@@ -1174,7 +1192,7 @@
                 renderDaily();
                 renderMonthly();
                 renderYearly();
-                renderAdvice();
+                renderAdvice(); // NEW: Update advice after deletion
             }
         }
 
@@ -1189,7 +1207,7 @@
                 renderDaily();
                 renderMonthly();
                 renderYearly();
-                renderAdvice();
+                renderAdvice(); // NEW: Update advice after edit
             }
         }
 
@@ -1254,6 +1272,9 @@
             const balanceEl = document.getElementById('dailyBalance');
             balanceEl.textContent = formatRupiah(balance);
             balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+            
+            // Render pie chart
+            renderDailyPie(todayExpenses);
             
             // Expenses list
             const expContainer = document.getElementById('dailyTransactions');
@@ -1324,6 +1345,51 @@
             }
         }
 
+        function renderDailyPie(expensesData) {
+            const ctx = document.getElementById('dailyPieChart').getContext('2d');
+            const isDark = document.body.classList.contains('dark-mode');
+            const bgColor = isDark ? '#16181d' : 'white';
+            
+            if (dailyPieChart) dailyPieChart.destroy();
+            
+            if (expensesData.length === 0) {
+                ctx.canvas.style.display = 'none';
+                return;
+            }
+            
+            const categories = {};
+            expensesData.forEach(e => {
+                categories[e.category] = (categories[e.category] || 0) + e.amount;
+            });
+            
+            const data = Object.entries(categories).map(([cat, amount]) => amount);
+            const labels = Object.keys(categories);
+            const colors = ['#4A90E2', '#5CB3FF', '#E74C3C', '#F39C12', '#27AE60', '#95A5A6', '#34495E'];
+            
+            dailyPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: isDark ? '#E8E8E8' : '#2C3E50' }
+                        }
+                    }
+                }
+            });
+            ctx.canvas.style.display = 'block';
+        }
+
         function renderMonthly() {
             const currentMonth = getCurrentMonth();
             const monthExpenses = expenses.filter(e => e.date.startsWith(currentMonth));
@@ -1338,8 +1404,103 @@
             balanceEl.textContent = formatRupiah(balance);
             balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
             
-            // Render daily line chart for the current month
-            renderMonthlyDailyLineChart(monthExpenses, monthIncomes);
+            // Render bar charts
+            renderMonthlyExpenseBar(monthExpenses);
+            renderMonthlyIncomeBar(monthIncomes);
+        }
+
+        function renderMonthlyExpenseBar(expensesData) {
+            const ctx = document.getElementById('monthlyExpenseChart').getContext('2d');
+            const isDark = document.body.classList.contains('dark-mode');
+            
+            if (monthlyExpenseChart) monthlyExpenseChart.destroy();
+            
+            if (expensesData.length === 0) {
+                ctx.canvas.style.display = 'none';
+                return;
+            }
+            
+            const categories = {};
+            expensesData.forEach(e => {
+                categories[e.category] = (categories[e.category] || 0) + e.amount;
+            });
+            
+            const data = Object.entries(categories).map(([cat, amount]) => amount);
+            const labels = Object.keys(categories);
+            
+            monthlyExpenseChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pengeluaran',
+                        data: data,
+                        backgroundColor: '#4A90E2',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 1000 },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } },
+                        x: { ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: false }
+                    }
+                }
+            });
+            ctx.canvas.style.display = 'block';
+        }
+
+        function renderMonthlyIncomeBar(incomesData) {
+            const ctx = document.getElementById('monthlyIncomeChart').getContext('2d');
+            const isDark = document.body.classList.contains('dark-mode');
+            
+            if (monthlyIncomeChart) monthlyIncomeChart.destroy();
+            
+            if (incomesData.length === 0) {
+                ctx.canvas.style.display = 'none';
+                return;
+            }
+            
+            const sources = {};
+            incomesData.forEach(i => {
+                sources[i.source] = (sources[i.source] || 0) + i.amount;
+            });
+            
+            const data = Object.entries(sources).map(([src, amount]) => amount);
+            const labels = Object.keys(sources).map(src => src.replace('-', ' '));
+            
+            monthlyIncomeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pemasukan',
+                        data: data,
+                        backgroundColor: '#27AE60',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 1000 },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } },
+                        x: { ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: false }
+                    }
+                }
+            });
+            ctx.canvas.style.display = 'block';
         }
 
         function renderYearly() {
@@ -1389,192 +1550,51 @@
                 `;
             }).join('');
             
-            // Render line chart for yearly (already implemented)
-            renderYearlyLineChart(months, monthNames);
-            
-
-        function renderMonthlyDailyLineChart(monthExpenses, monthIncomes) {
-            // Destroy existing chart
-            if (monthlyDailyChart) {
-                monthlyDailyChart.destroy();
-                monthlyDailyChart = null;
-            }
-
-            const canvas = document.getElementById('monthlyDailyChart');
-            if (!canvas) return;
-
-            const ctx = canvas.getContext('2d');
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth(); // 0-based
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            // Prepare arrays for days
-            const labels = [];
-            const expenseData = [];
-            const incomeData = [];
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dayStr = String(d).padStart(2, '0');
-                labels.push(dayStr);
-                const key = `${year}-${String(month + 1).padStart(2, '0')}-${dayStr}`;
-
-                const dayExpTotal = monthExpenses
-                    .filter(e => e.date === key)
-                    .reduce((s, e) => s + e.amount, 0);
-                const dayIncTotal = monthIncomes
-                    .filter(i => i.date === key)
-                    .reduce((s, i) => s + i.amount, 0);
-
-                expenseData.push(dayExpTotal);
-                incomeData.push(dayIncTotal);
-            }
-
-            const isDark = document.body.classList.contains('dark-mode');
-            const textColor = isDark ? '#E8E8E8' : '#2C3E50';
-            const gridColor = isDark ? '#2a2a2a' : '#E0E0E0';
-
-            monthlyDailyChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Pengeluaran',
-                            data: expenseData,
-                            borderColor: '#E74C3C',
-                            backgroundColor: 'rgba(231,76,60,0.08)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 3
-                        },
-                        {
-                            label: 'Pemasukan',
-                            data: incomeData,
-                            borderColor: '#27AE60',
-                            backgroundColor: 'rgba(39,174,96,0.08)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: { labels: { color: textColor } }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: gridColor },
-                            ticks: {
-                                color: textColor,
-                                callback: function(value) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(value); }
-                            }
-                        },
-                        x: { ticks: { color: textColor } }
-                    }
-                }
-            });
+            // Render line chart
+            renderYearlyLine(months, monthNames);
         }
 
-        function renderYearlyLineChart(months, monthNames) {
-            // Destroy existing chart if it exists
-            if (yearlyLineChart) {
-                yearlyLineChart.destroy();
-                yearlyLineChart = null;
-            }
-
-            const chartCanvas = document.getElementById('yearlyChart');
-            if (!chartCanvas) return;
-
+        function renderYearlyLine(months, monthNames) {
+            const ctx = document.getElementById('yearlyChart').getContext('2d');
             const isDark = document.body.classList.contains('dark-mode');
-            const textColor = isDark ? '#E8E8E8' : '#2C3E50';
-            const gridColor = isDark ? '#2a2a2a' : '#E0E0E0';
-
-            // Extract data from months object
-            const expenseData = Object.values(months).map(m => m.exp);
-            const incomeData = Object.values(months).map(m => m.inc);
-
-            yearlyLineChart = new Chart(chartCanvas, {
+            
+            if (yearlyLineChart) yearlyLineChart.destroy();
+            
+            const expData = Object.values(months).map(m => m.exp);
+            const incData = Object.values(months).map(m => m.inc);
+            
+            yearlyLineChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: monthNames,
-                    datasets: [
-                        {
-                            label: 'Pengeluaran',
-                            data: expenseData,
-                            borderColor: '#E74C3C',
-                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#E74C3C',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2
-                        },
-                        {
-                            label: 'Pemasukan',
-                            data: incomeData,
-                            borderColor: '#27AE60',
-                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#27AE60',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2
-                        }
-                    ]
+                    datasets: [{
+                        label: 'Pengeluaran',
+                        data: expData,
+                        borderColor: '#4A90E2',
+                        backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                        tension: 0.1
+                    }, {
+                        label: 'Pemasukan',
+                        data: incData,
+                        borderColor: '#27AE60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        tension: 0.1
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } },
+                        x: { ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } }
                     },
                     plugins: {
-                        legend: {
-                            display: true,
-                            labels: {
-                                color: textColor,
-                                font: { size: 12 },
-                                usePointStyle: true,
-                                padding: 15
-                            }
-                        },
-                        filler: {
-                            propagate: true
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: gridColor,
-                                drawBorder: true
-                            },
-                            ticks: {
-                                color: textColor,
-                                font: { size: 11 },
-                                callback: function(value) {
-                                    return 'Rp ' + new Intl.NumberFormat('id-ID').format(value);
+                        legend: { labels: { color: isDark ? '#E8E8E8' : '#2C3E50' } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatRupiah(context.parsed.y)}`;
                                 }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: textColor,
-                                font: { size: 11 }
                             }
                         }
                     }
