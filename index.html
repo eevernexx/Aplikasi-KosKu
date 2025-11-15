@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KosKu - Pengelola Keuangan & Tugas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        /* ========== RESET & VARIABLES ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4A90E2;
+            --secondary: #5CB3FF;
+            --danger: #E74C3C;
+            --warning: #F39C12;
+            --success: #27AE60;
+            --light: #F8F9FA;
+            --dark: #2C3E50;
+            --gray: #95A5A6;
+            --bg-body: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bg-container: white;
+            --text-primary: #2C3E50;
+            --text-secondary: #555;
+            --border-color: #E0E0E0;
+            --card-bg: white;
+            --input-bg: white;
+        }
+
+        /* Dark Mode Variables */
+        body.dark-mode {
+            --primary: #5BA3FF;
+            --secondary: #7CC5FF;
+            --bg-body: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            --bg-container: #0f1419;
+            --text-primary: #E8E8E8;
+            --text-secondary: #B8B8B8;
+            --border-color: #2a2a2a;
+            --light: #1a1a1a;
+            --card-bg: #16181d;
+            --input-bg: #1a1a1a;
+            --dark: #E8E8E8;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            padding: 10px;
+            transition: all 0.3s ease;
+        }
+
+        /* ========== CONTAINER ========== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-container);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .theme-toggle i {
+            font-size: 1.3em;
+            color: white;
+        }
+
+        /* ========== NAVIGATION TABS ========== */
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            background: var(--light);
+            border-bottom: 3px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .tab {
+            flex: 1;
+            min-width: 100px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: rgba(74, 144, 226, 0.1);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab i {
+            display: block;
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+
+        /* ========== CONTENT SECTIONS ========== */
+        .content {
+            padding: 20px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section h2 {
+            color: var(--text-primary);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== FORMS ========== */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* Checkbox for Unknown Deadline */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: var(--light);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            padding: 8px 15px;
+            font-size: 0.85em;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+            padding: 8px 15px;
+            font-size: 0.85em;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            padding: 8px 15px;
+            font-size: 0.85em;
+        }
+
+        /* ========== STATS CARDS ========== */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .amount {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        /* ========== TRANSACTION LIST ========== */
+        .transaction-list,
+        .task-list,
+        .income-list {
+            background: var(--light);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .transaction-item,
+        .task-item,
+        .income-item {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .transaction-item:hover,
+        .task-item:hover,
+        .income-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .transaction-header,
+        .task-header,
+        .income-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .transaction-category,
+        .income-source {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+            background: var(--primary);
+            color: white;
+        }
+
+        .transaction-amount {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--danger);
+        }
+
+        .income-amount {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .transaction-date,
+        .income-date {
+            font-size: 0.85em;
+            color: var(--gray);
+        }
+
+        .transaction-actions,
+        .task-actions,
+        .income-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        /* ========== TASKS ========== */
+        .task-item.completed {
+            opacity: 0.6;
+        }
+
+        .task-item.completed .task-title {
+            text-decoration: line-through;
+        }
+
+        .task-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+
+        .task-subject {
+            display: inline-block;
+            padding: 3px 10px;
+            background: var(--primary);
+            color: white;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin-bottom: 5px;
+        }
+
+        .task-deadline {
+            font-size: 0.85em;
+            margin: 5px 0;
+            color: var(--text-secondary);
+        }
+
+        .priority-high {
+            border-left: 4px solid var(--danger);
+        }
+
+        .priority-medium {
+            border-left: 4px solid var(--warning);
+        }
+
+        .priority-low {
+            border-left: 4px solid var(--success);
+        }
+
+        .deadline-urgent {
+            background: #FFEBEE !important;
+        }
+
+        body.dark-mode .deadline-urgent {
+            background: #4a1a1a !important;
+        }
+
+        .deadline-soon {
+            background: #FFF8E1 !important;
+        }
+
+        body.dark-mode .deadline-soon {
+            background: #3a3000 !important;
+        }
+
+        .deadline-unknown {
+            background: #FFF3E0 !important;
+        }
+
+        body.dark-mode .deadline-unknown {
+            background: #332800 !important;
+        }
+
+        .activity-item {
+            background: #E8F5E9;
+            border-left: 4px solid var(--success);
+        }
+
+        body.dark-mode .activity-item {
+            background: #1a2e1a;
+        }
+
+        /* ========== TABLE ========== */
+        .advice-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .advice-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .advice-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .advice-card {
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            background: var(--light);
+            transition: all 0.3s ease;
+        }
+
+        .advice-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .advice-card.warning {
+            border-left-color: var(--warning);
+            background: #FFF8E1;
+        }
+
+        body.dark-mode .advice-card.warning {
+            background: #3a3000;
+        }
+
+        .advice-card.danger {
+            border-left-color: var(--danger);
+            background: #FFEBEE;
+        }
+
+        body.dark-mode .advice-card.danger {
+            background: #4a1a1a;
+        }
+
+        .advice-card.success {
+            border-left-color: var(--success);
+            background: #E8F5E9;
+        }
+
+        body.dark-mode .advice-card.success {
+            background: #1a2e1a;
+        }
+
+        .advice-card i {
+            font-size: 1.5em;
+            margin-bottom: 8px;
+        }
+
+        .advice-card.warning i {
+            color: var(--warning);
+        }
+
+        .advice-card.danger i {
+            color: var(--danger);
+        }
+
+        .advice-card.success i {
+            color: var(--success);
+        }
+
+        .advice-text {
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        /* ========== CHARTS ========== */
+        .chart-container {
+            margin-top: 20px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 350px;
+        }
+
+        .chart-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        /* ========== TABLE ========== */
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: var(--light);
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.4em;
+            }
+
+            .theme-toggle {
+                width: 40px;
+                height: 40px;
+                top: 15px;
+                right: 15px;
+            }
+
+            .theme-toggle i {
+                font-size: 1.1em;
+            }
+
+            .tab {
+                font-size: 0.75em;
+                padding: 12px 8px;
+            }
+
+            .tab i {
+                font-size: 1.1em;
+            }
+
+            .stat-card .amount {
+                font-size: 1.4em;
+            }
+
+            table {
+                font-size: 0.85em;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+
+            .advice-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========== UTILITIES ========== */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-20 {
+            margin-top: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1><i class="fas fa-home"></i> KosKu</h1>
+            <p>Pengelola Keuangan & Tugas Anak Kos</p>
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+
+        <!-- NAVIGATION TABS -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('tambah')">
+                <i class="fas fa-plus-circle"></i>
+                <span>Tambah</span>
+            </button>
+            <button class="tab" onclick="showTab('harian')">
+                <i class="fas fa-calendar-day"></i>
+                <span>Harian</span>
+            </button>
+            <button class="tab" onclick="showTab('bulanan')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Bulanan</span>
+            </button>
+            <button class="tab" onclick="showTab('tahunan')">
+                <i class="fas fa-calendar"></i>
+                <span>Tahunan</span>
+            </button>
+            <button class="tab" onclick="showTab('tugas')">
+                <i class="fas fa-book"></i>
+                <span>Tugas Kuliah</span>
+            </button>
+            <button class="tab" onclick="showTab('kegiatan')">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Kegiatan</span>
+            </button>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+            <!-- TAB: TAMBAH -->
+            <div id="tambah" class="section active">
+                <h2 style="margin-bottom: 20px;"><i class="fas fa-wallet"></i> Tambah Pengeluaran</h2>
+                <form id="expenseForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar"></i> Tanggal</label>
+                        <input type="date" id="expenseDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-tags"></i> Kategori</label>
+                        <select id="expenseCategory" required>
+                            <option value="makan">🍔 Makan</option>
+                            <option value="transport">🚗 Transport</option>
+                            <option value="laundry">👕 Laundry</option>
+                            <option value="pulsa">📱 Pulsa/Internet</option>
+                            <option value="hiburan">🎮 Hiburan</option>
+                            <option value="belanja">🛒 Belanja</option>
+                            <option value="lainnya">📦 Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-money-bill-wave"></i> Jumlah (Rp)</label>
+                        <input type="number" id="expenseAmount" placeholder="Contoh: 25000" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-comment"></i> Keterangan (Opsional)</label>
+                        <textarea id="expenseNote" placeholder="Contoh: Makan siang di kantin"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Tambah Pengeluaran
+                    </button>
+                </form>
+
+                <h2 style="margin-top: 40px; margin-bottom: 20px;"><i class="fas fa-dollar-sign"></i> Tambah Pemasukan Bulanan</h2>
+                <form id="incomeForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar"></i> Tanggal</label>
+                        <input type="date" id="incomeDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-tags"></i> Sumber</label>
+                        <select id="incomeSource" required>
+                            <option value="uang-saku">💰 Uang Saku</option>
+                            <option value="kerja-parttime">💼 Kerja Part-time</option>
+                            <option value="beasiswa">🎓 Beasiswa</option>
+                            <option value="lainnya">📦 Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-money-bill-wave"></i> Jumlah (Rp)</label>
+                        <input type="number" id="incomeAmount" placeholder="Contoh: 500000" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-comment"></i> Keterangan (Opsional)</label>
+                        <textarea id="incomeNote" placeholder="Contoh: Uang saku dari orang tua"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Tambah Pemasukan
+                    </button>
+                </form>
+
+                <h2 style="margin-top: 40px; margin-bottom: 20px;"><i class="fas fa-graduation-cap"></i> Tambah Tugas Kuliah</h2>
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-tasks"></i> Nama Tugas</label>
+                        <input type="text" id="taskName" placeholder="Contoh: Laporan Praktikum" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-book"></i> Mata Kuliah</label>
+                        <input type="text" id="taskSubject" placeholder="Contoh: Pemrograman Web" required>
+                    </div>
+                    
+                    <!-- NEW: Checkbox for Unknown Deadline -->
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="unknownDeadline" onchange="toggleDeadlineField()">
+                        <label for="unknownDeadline">
+                            <i class="fas fa-question-circle"></i> Deadline Belum Diketahui
+                        </label>
+                    </div>
+                    
+                    <div class="form-group" id="deadlineGroup">
+                        <label><i class="fas fa-clock"></i> Deadline</label>
+                        <input type="date" id="taskDeadline" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-flag"></i> Prioritas</label>
+                        <select id="taskPriority" required>
+                            <option value="high">🔴 Tinggi</option>
+                            <option value="medium">🟡 Medium</option>
+                            <option value="low">🟢 Rendah</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Tambah Tugas
+                    </button>
+                </form>
+
+                <h2 style="margin-top: 40px; margin-bottom: 20px;"><i class="fas fa-running"></i> Tambah Kegiatan Luar Kuliah</h2>
+                <form id="activityForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-star"></i> Nama Kegiatan</label>
+                        <input type="text" id="activityName" placeholder="Contoh: Olahraga Futsal" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-check"></i> Tanggal & Jam</label>
+                        <input type="datetime-local" id="activityDateTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Lokasi (Opsional)</label>
+                        <input type="text" id="activityLocation" placeholder="Contoh: Lapangan Kampus">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-sticky-note"></i> Catatan (Opsional)</label>
+                        <textarea id="activityNote" placeholder="Catatan tambahan..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Tambah Kegiatan
+                    </button>
+                </form>
+            </div>
+
+            <!-- TAB: HARIAN -->
+            <div id="harian" class="section">
+                <h2><i class="fas fa-calendar-day"></i> Keuangan Hari Ini</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>Pengeluaran Hari Ini</h3>
+                        <div class="amount" id="dailyExpenseTotal">Rp 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Pemasukan Hari Ini</h3>
+                        <div class="amount" id="dailyIncomeTotal">Rp 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Balance Hari Ini</h3>
+                        <div class="amount" id="dailyBalance" style="color: var(--success);">Rp 0</div>
+                    </div>
+                </div>
+                <h3 style="margin-top: 20px;"><i class="fas fa-list"></i> Daftar Pengeluaran</h3>
+                <div id="dailyTransactions"></div>
+                <h3 style="margin-top: 20px;"><i class="fas fa-list"></i> Daftar Pemasukan</h3>
+                <div id="dailyIncomes"></div>
+            </div>
+
+            <!-- TAB: BULANAN -->
+            <div id="bulanan" class="section">
+                <h2><i class="fas fa-calendar-alt"></i> Keuangan Bulan Ini</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>Pengeluaran Bulan Ini</h3>
+                        <div class="amount" id="monthlyExpenseTotal">Rp 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Pemasukan Bulan Ini</h3>
+                        <div class="amount" id="monthlyIncomeTotal">Rp 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Balance Bulan Ini</h3>
+                        <div class="amount" id="monthlyBalance" style="color: var(--success);">Rp 0</div>
+                    </div>
+                </div>
+
+                <!-- NEW: Advice Section in Bulanan -->
+                <div class="advice-section" id="adviceSection">
+                    <div class="advice-title">
+                        <i class="fas fa-lightbulb"></i>
+                        Advice & Tips Pribadi
+                    </div>
+                    <div class="advice-cards" id="adviceCards"></div>
+                </div>
+
+                <button class="btn btn-danger" onclick="resetMonthly()" style="width: 100%; margin-top: 20px;">
+                    <i class="fas fa-trash"></i> Reset Data Bulan Ini
+                </button>
+            </div>
+
+            <!-- TAB: TAHUNAN -->
+            <div id="tahunan" class="section">
+                <h2><i class="fas fa-calendar"></i> Keuangan Tahun Ini</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>Total Pengeluaran Tahun Ini</h3>
+                        <div class="amount" id="yearlyExpenseTotal">Rp 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Pemasukan Tahun Ini</h3>
+                        <div class="amount" id="yearlyIncomeTotal">Rp 0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Balance Tahun Ini</h3>
+                        <div class="amount" id="yearlyBalance" style="color: var(--success);">Rp 0</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title"><i class="fas fa-chart-line"></i> Grafik Bulanan (Pengeluaran vs Pemasukan)</div>
+                    <div class="chart-wrapper">
+                        <canvas id="yearlyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="yearlyTable">
+                        <thead>
+                            <tr>
+                                <th>Bulan</th>
+                                <th>Pengeluaran</th>
+                                <th>Pemasukan</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <button class="btn btn-danger" onclick="resetYearly()" style="width: 100%; margin-top: 20px;">
+                    <i class="fas fa-trash"></i> Reset Data Tahun Ini
+                </button>
+            </div>
+
+            <!-- TAB: TUGAS KULIAH -->
+            <div id="tugas" class="section">
+                <h2><i class="fas fa-graduation-cap"></i> Tugas Kuliah</h2>
+                <div id="taskList"></div>
+            </div>
+
+            <!-- TAB: KEGIATAN -->
+            <div id="kegiatan" class="section">
+                <h2><i class="fas fa-clipboard-list"></i> Kegiatan Luar Kuliah</h2>
+                <div id="activityList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== INITIALIZE DATA ==========
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        let incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let activities = JSON.parse(localStorage.getItem('activities')) || [];
+
+        // Set default date to today
+        document.getElementById('expenseDate').valueAsDate = new Date();
+        document.getElementById('incomeDate').valueAsDate = new Date();
+
+        // Chart instances
+        let yearlyLineChart = null;
+
+        // ========== THEME MANAGEMENT (NEW) ==========
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                document.getElementById('themeIcon').className = 'fas fa-sun';
+            }
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('themeIcon');
+            
+            if (body.classList.contains('dark-mode')) {
+                body.classList.remove('dark-mode');
+                icon.className = 'fas fa-moon';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.add('dark-mode');
+                icon.className = 'fas fa-sun';
+                localStorage.setItem('theme', 'dark');
+            }
+            
+            // Re-render chart with new colors
+            if (yearlyLineChart) {
+                const currentYear = getCurrentYear();
+                const yearExpenses = expenses.filter(e => e.date.startsWith(currentYear));
+                const yearIncomes = incomes.filter(i => i.date.startsWith(currentYear));
+                
+                const months = {};
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Oct', 'Nov', 'Des'];
+                
+                for (let i = 1; i <= 12; i++) {
+                    const monthKey = `${currentYear}-${String(i).padStart(2, '0')}`;
+                    months[monthKey] = { exp: 0, inc: 0 };
+                }
+                
+                yearExpenses.forEach(e => {
+                    const monthKey = e.date.substring(0, 7);
+                    if (months[monthKey]) months[monthKey].exp += e.amount;
+                });
+                
+                yearIncomes.forEach(i => {
+                    const monthKey = i.date.substring(0, 7);
+                    if (months[monthKey]) months[monthKey].inc += i.amount;
+                });
+                
+                renderYearlyLineChart(months, monthNames);
+            }
+        }
+
+        function updateChartColors(mode) {
+            // Chart colors update removed - charts deleted
+        }
+
+        // ========== DEADLINE FIELD TOGGLE (NEW) ==========
+        function toggleDeadlineField() {
+            const checkbox = document.getElementById('unknownDeadline');
+            const deadlineGroup = document.getElementById('deadlineGroup');
+            const deadlineInput = document.getElementById('taskDeadline');
+            
+            if (checkbox.checked) {
+                deadlineGroup.style.display = 'none';
+                deadlineInput.required = false;
+            } else {
+                deadlineGroup.style.display = 'block';
+                deadlineInput.required = true;
+            }
+        }
+
+        // ========== UTILITY FUNCTIONS ==========
+        function formatRupiah(amount) {
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+        }
+
+        function getTodayString() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function getCurrentMonth() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function getCurrentYear() {
+            return new Date().getFullYear();
+        }
+
+        function formatDate(dateString) {
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        }
+
+        function formatDateTime(dateTimeString) {
+            const options = { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return new Date(dateTimeString).toLocaleDateString('id-ID', options);
+        }
+
+        function getDaysUntil(dateString) {
+            const target = new Date(dateString);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            target.setHours(0, 0, 0, 0);
+            const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+            return diff;
+        }
+
+        function getCategoryEmoji(category) {
+            const emojis = {
+                'makan': '🍔',
+                'transport': '🚗',
+                'laundry': '👕',
+                'pulsa': '📱',
+                'hiburan': '🎮',
+                'belanja': '🛒',
+                'lainnya': '📦'
+            };
+            return emojis[category] || '📦';
+        }
+
+        function getSourceEmoji(source) {
+            const emojis = {
+                'uang-saku': '💰',
+                'kerja-parttime': '💼',
+                'beasiswa': '🎓',
+                'lainnya': '📦'
+            };
+            return emojis[source] || '📦';
+        }
+
+        function calculateBalance(expensesData, incomesData) {
+            const expTotal = expensesData.reduce((sum, e) => sum + e.amount, 0);
+            const incTotal = incomesData.reduce((sum, i) => sum + i.amount, 0);
+            return incTotal - expTotal;
+        }
+
+        // ========== TAB NAVIGATION ==========
+        function showTab(tabName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(tabName).classList.add('active');
+            
+            // Activate clicked tab
+            event.target.closest('.tab').classList.add('active');
+            
+            // Refresh data for the tab
+            if (tabName === 'harian') renderDaily();
+            if (tabName === 'bulanan') {
+                renderMonthly();
+                renderAdvice(); // NEW: Render advice when showing bulanan
+            }
+            if (tabName === 'tahunan') renderYearly();
+            if (tabName === 'tugas') renderTasks();
+            if (tabName === 'kegiatan') renderActivities();
+        }
+
+        // ========== EXPENSE MANAGEMENT ==========
+        document.getElementById('expenseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const expense = {
+                id: Date.now(),
+                date: document.getElementById('expenseDate').value,
+                category: document.getElementById('expenseCategory').value,
+                amount: parseFloat(document.getElementById('expenseAmount').value),
+                note: document.getElementById('expenseNote').value
+            };
+            
+            expenses.push(expense);
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            
+            // Reset form
+            this.reset();
+            document.getElementById('expenseDate').valueAsDate = new Date();
+            
+            alert('✅ Pengeluaran berhasil ditambahkan!');
+        });
+
+        function deleteExpense(id) {
+            if (confirm('Hapus pengeluaran ini?')) {
+                expenses = expenses.filter(e => e.id !== id);
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                renderDaily();
+                renderMonthly();
+                renderYearly();
+                renderAdvice();
+            }
+        }
+
+        function editExpense(id) {
+            const expense = expenses.find(e => e.id === id);
+            if (!expense) return;
+            
+            const newAmount = prompt('Jumlah baru (Rp):', expense.amount);
+            if (newAmount && !isNaN(newAmount)) {
+                expense.amount = parseFloat(newAmount);
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                renderDaily();
+                renderMonthly();
+                renderYearly();
+                renderAdvice();
+            }
+        }
+
+        // ========== INCOME MANAGEMENT ==========
+        document.getElementById('incomeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const income = {
+                id: Date.now(),
+                date: document.getElementById('incomeDate').value,
+                source: document.getElementById('incomeSource').value,
+                amount: parseFloat(document.getElementById('incomeAmount').value),
+                note: document.getElementById('incomeNote').value
+            };
+            
+            incomes.push(income);
+            localStorage.setItem('incomes', JSON.stringify(incomes));
+            
+            // Reset form
+            this.reset();
+            document.getElementById('incomeDate').valueAsDate = new Date();
+            
+            alert('✅ Pemasukan berhasil ditambahkan!');
+        });
+
+        function deleteIncome(id) {
+            if (confirm('Hapus pemasukan ini?')) {
+                incomes = incomes.filter(i => i.id !== id);
+                localStorage.setItem('incomes', JSON.stringify(incomes));
+                renderDaily();
+                renderMonthly();
+                renderYearly();
+                renderAdvice();
+            }
+        }
+
+        function editIncome(id) {
+            const income = incomes.find(i => i.id === id);
+            if (!income) return;
+            
+            const newAmount = prompt('Jumlah baru (Rp):', income.amount);
+            if (newAmount && !isNaN(newAmount)) {
+                income.amount = parseFloat(newAmount);
+                localStorage.setItem('incomes', JSON.stringify(incomes));
+                renderDaily();
+                renderMonthly();
+                renderYearly();
+                renderAdvice();
+            }
+        }
+
+        function renderDaily() {
+            const today = getTodayString();
+            const todayExpenses = expenses.filter(e => e.date === today);
+            const todayIncomes = incomes.filter(i => i.date === today);
+            const expTotal = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const incTotal = todayIncomes.reduce((sum, i) => sum + i.amount, 0);
+            const balance = calculateBalance(todayExpenses, todayIncomes);
+            
+            document.getElementById('dailyExpenseTotal').textContent = formatRupiah(expTotal);
+            document.getElementById('dailyIncomeTotal').textContent = formatRupiah(incTotal);
+            const balanceEl = document.getElementById('dailyBalance');
+            balanceEl.textContent = formatRupiah(balance);
+            balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+            
+            // Expenses list
+            const expContainer = document.getElementById('dailyTransactions');
+            if (todayExpenses.length === 0) {
+                expContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Belum ada pengeluaran hari ini</p>
+                    </div>
+                `;
+            } else {
+                expContainer.innerHTML = `
+                    <div class="transaction-list">
+                        ${todayExpenses.map(e => `
+                            <div class="transaction-item">
+                                <div class="transaction-header">
+                                    <span class="transaction-category">${getCategoryEmoji(e.category)} ${e.category}</span>
+                                    <span class="transaction-amount">${formatRupiah(e.amount)}</span>
+                                </div>
+                                ${e.note ? `<p style="margin: 8px 0; color: var(--text-secondary);">${e.note}</p>` : ''}
+                                <div class="transaction-date">${formatDate(e.date)}</div>
+                                <div class="transaction-actions">
+                                    <button class="btn btn-warning" onclick="editExpense(${e.id})">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-danger" onclick="deleteExpense(${e.id})">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Incomes list
+            const incContainer = document.getElementById('dailyIncomes');
+            if (todayIncomes.length === 0) {
+                incContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Belum ada pemasukan hari ini</p>
+                    </div>
+                `;
+            } else {
+                incContainer.innerHTML = `
+                    <div class="income-list">
+                        ${todayIncomes.map(i => `
+                            <div class="income-item">
+                                <div class="income-header">
+                                    <span class="income-source">${getSourceEmoji(i.source)} ${i.source.replace('-', ' ')}</span>
+                                    <span class="income-amount">${formatRupiah(i.amount)}</span>
+                                </div>
+                                ${i.note ? `<p style="margin: 8px 0; color: var(--text-secondary);">${i.note}</p>` : ''}
+                                <div class="income-date">${formatDate(i.date)}</div>
+                                <div class="income-actions">
+                                    <button class="btn btn-warning" onclick="editIncome(${i.id})">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-danger" onclick="deleteIncome(${i.id})">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function renderMonthly() {
+            const currentMonth = getCurrentMonth();
+            const monthExpenses = expenses.filter(e => e.date.startsWith(currentMonth));
+            const monthIncomes = incomes.filter(i => i.date.startsWith(currentMonth));
+            const expTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const incTotal = monthIncomes.reduce((sum, i) => sum + i.amount, 0);
+            const balance = calculateBalance(monthExpenses, monthIncomes);
+            
+            document.getElementById('monthlyExpenseTotal').textContent = formatRupiah(expTotal);
+            document.getElementById('monthlyIncomeTotal').textContent = formatRupiah(incTotal);
+            const balanceEl = document.getElementById('monthlyBalance');
+            balanceEl.textContent = formatRupiah(balance);
+            balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+        }
+
+        function renderYearly() {
+            const currentYear = getCurrentYear();
+            const yearExpenses = expenses.filter(e => e.date.startsWith(currentYear));
+            const yearIncomes = incomes.filter(i => i.date.startsWith(currentYear));
+            const expTotal = yearExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const incTotal = yearIncomes.reduce((sum, i) => sum + i.amount, 0);
+            const balance = calculateBalance(yearExpenses, yearIncomes);
+            
+            document.getElementById('yearlyExpenseTotal').textContent = formatRupiah(expTotal);
+            document.getElementById('yearlyIncomeTotal').textContent = formatRupiah(incTotal);
+            const balanceEl = document.getElementById('yearlyBalance');
+            balanceEl.textContent = formatRupiah(balance);
+            balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+            
+            // Group by month
+            const months = {};
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Oct', 'Nov', 'Des'];
+            
+            for (let i = 1; i <= 12; i++) {
+                const monthKey = `${currentYear}-${String(i).padStart(2, '0')}`;
+                months[monthKey] = { exp: 0, inc: 0 };
+            }
+            
+            yearExpenses.forEach(e => {
+                const monthKey = e.date.substring(0, 7);
+                if (months[monthKey]) months[monthKey].exp += e.amount;
+            });
+            
+            yearIncomes.forEach(i => {
+                const monthKey = i.date.substring(0, 7);
+                if (months[monthKey]) months[monthKey].inc += i.amount;
+            });
+            
+            // Render table
+            const tbody = document.querySelector('#yearlyTable tbody');
+            tbody.innerHTML = Object.entries(months).map(([monthKey, data], index) => {
+                const bal = data.inc - data.exp;
+                return `
+                    <tr>
+                        <td><strong>${monthNames[index]}</strong></td>
+                        <td>${formatRupiah(data.exp)}</td>
+                        <td>${formatRupiah(data.inc)}</td>
+                        <td style="color: ${bal >= 0 ? 'var(--success)' : 'var(--danger)'}">${formatRupiah(bal)}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Render line chart
+            renderYearlyLineChart(months, monthNames);
+        }
+
+        function renderYearlyLineChart(months, monthNames) {
+            // Destroy existing chart if it exists
+            if (yearlyLineChart) {
+                yearlyLineChart.destroy();
+                yearlyLineChart = null;
+            }
+
+            const chartCanvas = document.getElementById('yearlyChart');
+            if (!chartCanvas) return;
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const textColor = isDark ? '#E8E8E8' : '#2C3E50';
+            const gridColor = isDark ? '#2a2a2a' : '#E0E0E0';
+
+            // Extract data from months object
+            const expenseData = Object.values(months).map(m => m.exp);
+            const incomeData = Object.values(months).map(m => m.inc);
+
+            yearlyLineChart = new Chart(chartCanvas, {
+                type: 'line',
+                data: {
+                    labels: monthNames,
+                    datasets: [
+                        {
+                            label: 'Pengeluaran',
+                            data: expenseData,
+                            borderColor: '#E74C3C',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#E74C3C',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Pemasukan',
+                            data: incomeData,
+                            borderColor: '#27AE60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#27AE60',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: textColor,
+                                font: { size: 12 },
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        filler: {
+                            propagate: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                                drawBorder: true
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    return 'Rp ' + new Intl.NumberFormat('id-ID').format(value);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function resetMonthly() {
+            if (confirm('⚠️ Hapus semua data pengeluaran dan pemasukan bulan ini? Tindakan ini tidak bisa dibatalkan!')) {
+                const currentMonth = getCurrentMonth();
+                expenses = expenses.filter(e => !e.date.startsWith(currentMonth));
+                incomes = incomes.filter(i => !i.date.startsWith(currentMonth));
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                localStorage.setItem('incomes', JSON.stringify(incomes));
+                renderMonthly();
+                renderAdvice(); // NEW: Update advice after reset
+                alert('✅ Data bulan ini berhasil dihapus!');
+            }
+        }
+
+        function resetYearly() {
+            if (confirm('⚠️ Hapus semua data pengeluaran dan pemasukan tahun ini? Tindakan ini tidak bisa dibatalkan!')) {
+                const currentYear = getCurrentYear();
+                expenses = expenses.filter(e => !e.date.startsWith(currentYear));
+                incomes = incomes.filter(i => !i.date.startsWith(currentYear));
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                localStorage.setItem('incomes', JSON.stringify(incomes));
+                renderYearly();
+                alert('✅ Data tahun ini berhasil dihapus!');
+            }
+        }
+
+        // ========== ADVICE SYSTEM (NEW) ==========
+        function renderAdvice() {
+            const adviceContainer = document.getElementById('adviceCards');
+            const advices = generateAdvices();
+            
+            if (advices.length === 0) {
+                adviceContainer.innerHTML = `
+                    <div class="advice-card success">
+                        <i class="fas fa-smile"></i>
+                        <div class="advice-text">
+                            Mulai catat pengeluaran hari ini untuk keuangan lebih sehat! 💪
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show max 3 advices
+            adviceContainer.innerHTML = advices.slice(0, 3).map(advice => `
+                <div class="advice-card ${advice.type}">
+                    <i class="${advice.icon}"></i>
+                    <div class="advice-text">${advice.text}</div>
+                </div>
+            `).join('');
+        }
+
+        function generateAdvices() {
+            const advices = [];
+            const currentMonth = getCurrentMonth();
+            const monthExpenses = expenses.filter(e => e.date.startsWith(currentMonth));
+            const monthIncomes = incomes.filter(i => i.date.startsWith(currentMonth));
+            const expTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const incTotal = monthIncomes.reduce((sum, i) => sum + i.amount, 0);
+            const balance = incTotal - expTotal;
+            
+            // Advice 1: Budget alert
+            if (expTotal > 2000000) {
+                advices.push({
+                    type: 'danger',
+                    icon: 'fas fa-exclamation-triangle',
+                    text: 'Hati-hati budget! Total pengeluaran bulan ini sudah lebih dari Rp 2 juta. Coba kurangi pengeluaran hiburan minggu ini.'
+                });
+            } else if (expTotal > 1500000) {
+                advices.push({
+                    type: 'warning',
+                    icon: 'fas fa-chart-line',
+                    text: 'Pengeluaran mendekati batas! Sudah Rp ' + formatRupiah(expTotal).split(' ')[1] + ' bulan ini. Pertimbangkan untuk lebih hemat di minggu terakhir.'
+                });
+            }
+            
+            // Advice 2: Category spending pattern
+            if (monthExpenses.length > 0) {
+                const categories = {};
+                monthExpenses.forEach(e => {
+                    if (!categories[e.category]) categories[e.category] = 0;
+                    categories[e.category] += e.amount;
+                });
+                
+                const makanPercentage = ((categories['makan'] || 0) / expTotal) * 100;
+                const hiburanPercentage = ((categories['hiburan'] || 0) / expTotal) * 100;
+                
+                if (makanPercentage > 40) {
+                    advices.push({
+                        type: 'warning',
+                        icon: 'fas fa-utensils',
+                        text: `Tips: Biaya makan ${makanPercentage.toFixed(0)}% dari total pengeluaran. Coba masak sendiri, bisa hemat 30% biaya makan lho!`
+                    });
+                }
+                
+                if (hiburanPercentage > 25) {
+                    advices.push({
+                        type: 'warning',
+                        icon: 'fas fa-gamepad',
+                        text: `Hiburan ${hiburanPercentage.toFixed(0)}% dari budget! Bagus untuk work-life balance, tapi jangan lupa sisihkan untuk tabungan ya.`
+                    });
+                }
+            }
+            
+            // New Advice: Balance
+            if (balance < 0) {
+                advices.push({
+                    type: 'danger',
+                    icon: 'fas fa-exclamation-circle',
+                    text: `Balance negatif Rp ${formatRupiah(Math.abs(balance)).split(' ')[1]}! Coba tambah pemasukan atau kurangi pengeluaran.`
+                });
+            } else if (incTotal > 0 && (incTotal - expTotal) / incTotal > 0.2) {
+                advices.push({
+                    type: 'success',
+                    icon: 'fas fa-thumbs-up',
+                    text: `Bagus! Surplus Rp ${formatRupiah(balance).split(' ')[1]}, sisihkan untuk tabungan.`
+                });
+            }
+            
+            // Advice 3: Tasks overdue
+            const incompleteTasks = tasks.filter(t => !t.completed);
+            const overdueTasks = incompleteTasks.filter(t => {
+                if (t.deadline === 'unknown') return false;
+                return getDaysUntil(t.deadline) < 0;
+            });
+            
+            if (overdueTasks.length >= 5) {
+                advices.push({
+                    type: 'danger',
+                    icon: 'fas fa-exclamation-circle',
+                    text: `Ada ${overdueTasks.length} tugas terlambat! Fokus dulu ke prioritas tinggi – jadwalkan sesi belajar intensif malam ini.`
+                });
+            } else if (incompleteTasks.length >= 7) {
+                advices.push({
+                    type: 'warning',
+                    icon: 'fas fa-tasks',
+                    text: `${incompleteTasks.length} tugas menunggu! Buat jadwal harian dan selesaikan satu per satu. You got this! 💪`
+                });
+            }
+            
+            // Advice 4: Balance activities and tasks
+            const upcomingActivities = activities.filter(a => {
+                if (a.completed) return false;
+                const actDate = new Date(a.dateTime);
+                const now = new Date();
+                const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                return actDate >= now && actDate <= weekLater;
+            });
+            
+            if (upcomingActivities.length >= 3 && incompleteTasks.length >= 5) {
+                advices.push({
+                    type: 'warning',
+                    icon: 'fas fa-balance-scale',
+                    text: 'Balance yuk! Ada banyak kegiatan minggu ini tapi tugas juga numpuk. Sisipkan waktu istirahat setelah aktivitas agar tetap produktif.'
+                });
+            }
+            
+            // Advice 5: Positive reinforcement
+            if (expTotal > 0 && expTotal <= 1000000) {
+                advices.push({
+                    type: 'success',
+                    icon: 'fas fa-thumbs-up',
+                    text: 'Bagus! Pengeluaran bulan ini masih terkendali di bawah Rp 1 juta. Terus pertahankan kebiasaan baik ini! 🎉'
+                });
+            }
+            
+            if (incompleteTasks.length === 0 && tasks.length > 0) {
+                advices.push({
+                    type: 'success',
+                    icon: 'fas fa-check-circle',
+                    text: 'Semua tugas selesai! Kamu luar biasa! Waktunya istirahat atau cari tugas baru untuk terus berkembang. 🌟'
+                });
+            }
+            
+            // Advice 6: Unknown deadline reminder
+            const unknownDeadlineTasks = tasks.filter(t => !t.completed && t.deadline === 'unknown');
+            if (unknownDeadlineTasks.length >= 3) {
+                advices.push({
+                    type: 'warning',
+                    icon: 'fas fa-calendar-times',
+                    text: `${unknownDeadlineTasks.length} tugas belum ada deadline! Segera cek ke dosen atau teman agar tidak ketinggalan pengumpulan.`
+                });
+            }
+            
+            // Default motivational advice if no data
+            if (advices.length === 0) {
+                advices.push({
+                    type: 'success',
+                    icon: 'fas fa-rocket',
+                    text: 'Tetap semangat! Kelola keuangan dan waktu dengan baik untuk masa depan yang cerah. 🚀'
+                });
+            }
+            
+            return advices;
+        }
+
+        // ========== TASK MANAGEMENT ==========
+        document.getElementById('taskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const unknownDeadline = document.getElementById('unknownDeadline').checked;
+            
+            const task = {
+                id: Date.now(),
+                name: document.getElementById('taskName').value,
+                subject: document.getElementById('taskSubject').value,
+                deadline: unknownDeadline ? 'unknown' : document.getElementById('taskDeadline').value,
+                priority: document.getElementById('taskPriority').value,
+                completed: false
+            };
+            
+            tasks.push(task);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            
+            this.reset();
+            document.getElementById('deadlineGroup').style.display = 'block';
+            document.getElementById('taskDeadline').required = true;
+            alert('✅ Tugas berhasil ditambahkan!');
+        });
+
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                renderTasks();
+                renderAdvice(); // NEW: Update advice when task status changes
+            }
+        }
+
+        function deleteTask(id) {
+            if (confirm('Hapus tugas ini?')) {
+                tasks = tasks.filter(t => t.id !== id);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                renderTasks();
+                renderAdvice(); // NEW: Update advice after deletion
+            }
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('taskList');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tasks"></i>
+                        <p>Belum ada tugas kuliah</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort: completed last, then unknown deadline last, then by deadline
+            const sortedTasks = [...tasks].sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                
+                // Both not completed
+                if (!a.completed && !b.completed) {
+                    // Put unknown deadlines at the end
+                    if (a.deadline === 'unknown' && b.deadline !== 'unknown') return 1;
+                    if (a.deadline !== 'unknown' && b.deadline === 'unknown') return -1;
+                    if (a.deadline === 'unknown' && b.deadline === 'unknown') return 0;
+                    
+                    // Sort by deadline date
+                    return new Date(a.deadline) - new Date(b.deadline);
+                }
+                
+                return 0;
+            });
+            
+            container.innerHTML = `
+                <div class="task-list">
+                    ${sortedTasks.map(t => {
+                        let urgencyClass = '';
+                        let urgencyText = '';
+                        
+                        if (!t.completed) {
+                            if (t.deadline === 'unknown') {
+                                urgencyClass = 'deadline-unknown';
+                                urgencyText = '<span style="color: #F39C12; font-weight: 600;">📝 Deadline belum ditentukan – Segera update!</span>';
+                            } else {
+                                const daysUntil = getDaysUntil(t.deadline);
+                                
+                                if (daysUntil < 0) {
+                                    urgencyClass = 'deadline-urgent';
+                                    urgencyText = `<span style="color: #E74C3C; font-weight: 600;">⚠️ Terlambat ${Math.abs(daysUntil)} hari</span>`;
+                                } else if (daysUntil === 0) {
+                                    urgencyClass = 'deadline-urgent';
+                                    urgencyText = '<span style="color: #E74C3C; font-weight: 600;">⚠️ Deadline hari ini!</span>';
+                                } else if (daysUntil === 1) {
+                                    urgencyClass = 'deadline-urgent';
+                                    urgencyText = '<span style="color: #E74C3C; font-weight: 600;">⚠️ Deadline besok!</span>';
+                                } else if (daysUntil <= 7) {
+                                    urgencyClass = 'deadline-soon';
+                                    urgencyText = `<span style="color: #F39C12; font-weight: 600;">⏰ ${daysUntil} hari lagi</span>`;
+                                } else {
+                                    urgencyText = `<span style="color: #27AE60;">${daysUntil} hari lagi</span>`;
+                                }
+                            }
+                        }
+                        
+                        const deadlineDisplay = t.deadline === 'unknown' 
+                            ? 'TBD' 
+                            : formatDate(t.deadline);
+                        
+                        return `
+                            <div class="task-item priority-${t.priority} ${urgencyClass} ${t.completed ? 'completed' : ''}">
+                                <div class="task-header">
+                                    <div class="checkbox-wrapper">
+                                        <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
+                                        <div>
+                                            <div class="task-title">${t.name}</div>
+                                            <span class="task-subject">${t.subject}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="task-deadline">
+                                    <i class="fas fa-calendar-alt"></i> ${deadlineDisplay} ${urgencyText}
+                                </div>
+                                <div class="task-actions">
+                                    <button class="btn btn-danger" onclick="deleteTask(${t.id})">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // ========== ACTIVITY MANAGEMENT ==========
+        document.getElementById('activityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const activity = {
+                id: Date.now(),
+                name: document.getElementById('activityName').value,
+                dateTime: document.getElementById('activityDateTime').value,
+                location: document.getElementById('activityLocation').value,
+                note: document.getElementById('activityNote').value,
+                completed: false
+            };
+            
+            activities.push(activity);
+            localStorage.setItem('activities', JSON.stringify(activities));
+            
+            this.reset();
+            alert('✅ Kegiatan berhasil ditambahkan!');
+        });
+
+        function toggleActivity(id) {
+            const activity = activities.find(a => a.id === id);
+            if (activity) {
+                activity.completed = !activity.completed;
+                localStorage.setItem('activities', JSON.stringify(activities));
+                renderActivities();
+                renderAdvice(); // NEW: Update advice when activity status changes
+            }
+        }
+
+        function deleteActivity(id) {
+            if (confirm('Hapus kegiatan ini?')) {
+                activities = activities.filter(a => a.id !== id);
+                localStorage.setItem('activities', JSON.stringify(activities));
+                renderActivities();
+                renderAdvice(); // NEW: Update advice after deletion
+            }
+        }
+
+        function renderActivities() {
+            const container = document.getElementById('activityList');
+            
+            if (activities.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-list"></i>
+                        <p>Belum ada kegiatan luar kuliah</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort by datetime (nearest first), then by completed status
+            const sortedActivities = [...activities].sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                return new Date(a.dateTime) - new Date(b.dateTime);
+            });
+            
+            container.innerHTML = `
+                <div class="task-list">
+                    ${sortedActivities.map(a => `
+                        <div class="task-item activity-item ${a.completed ? 'completed' : ''}">
+                            <div class="task-header">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" ${a.completed ? 'checked' : ''} onchange="toggleActivity(${a.id})">
+                                    <div>
+                                        <div class="task-title">${a.name}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="task-deadline">
+                                <i class="fas fa-clock"></i> ${formatDateTime(a.dateTime)}
+                            </div>
+                            ${a.location ? `<div style="margin: 5px 0; color: var(--text-secondary);"><i class="fas fa-map-marker-alt"></i> ${a.location}</div>` : ''}
+                            ${a.note ? `<div style="margin: 8px 0; color: var(--text-secondary); font-size: 0.9em;">${a.note}</div>` : ''}
+                            <div class="task-actions">
+                                <button class="btn btn-danger" onclick="deleteActivity(${a.id})">
+                                    <i class="fas fa-trash"></i> Hapus
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // ========== INITIALIZE ON LOAD ==========
+        initTheme(); // NEW: Initialize theme on load
+        renderDaily();
+        renderMonthly();
+        renderYearly();
+        renderTasks();
+        renderActivities();
+        renderAdvice(); // NEW: Initialize advice on load
+    </script>
+</body>
+</html>
