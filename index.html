@@ -911,7 +911,16 @@
 
             <!-- TAB: TAHUNAN -->
             <div id="tahunan" class="section">
-                <h2><i class="fas fa-calendar"></i> Keuangan Tahun Ini</h2>
+                <h2><i class="fas fa-calendar"></i> Rekapan Keuangan Tahunan</h2>
+
+                <!-- Year Selector -->
+                <div class="form-group" style="max-width: 300px; margin-bottom: 20px;">
+                    <label><i class="fas fa-calendar-alt"></i> Pilih Tahun</label>
+                    <select id="yearSelector" onchange="changeYear()">
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+
                 <div class="stats">
                     <div class="stat-card">
                         <h3>Total Pengeluaran Tahun Ini</h3>
@@ -948,8 +957,32 @@
                     </table>
                 </div>
 
+                <!-- Histori Tahunan Section -->
+                <div class="chart-container" style="margin-top: 30px;">
+                    <div class="chart-title"><i class="fas fa-history"></i> Histori Perbandingan Tahunan</div>
+                    <div class="chart-wrapper">
+                        <canvas id="yearComparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-chart-bar"></i> Rekapan Per Tahun</h3>
+                    <table id="yearHistoryTable">
+                        <thead>
+                            <tr>
+                                <th>Tahun</th>
+                                <th>Total Pengeluaran</th>
+                                <th>Total Pemasukan</th>
+                                <th>Balance</th>
+                                <th>Rata-rata/Bulan</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
                 <button class="btn btn-danger" onclick="resetYearly()" style="width: 100%; margin-top: 20px;">
-                    <i class="fas fa-trash"></i> Reset Data Tahun Ini
+                    <i class="fas fa-trash"></i> Reset Data Tahun Yang Dipilih
                 </button>
             </div>
 
@@ -980,6 +1013,10 @@
 
         // Chart instances
         let yearlyLineChart = null;
+        let yearComparisonChart = null;
+
+        // Selected year for viewing
+        let selectedYear = getCurrentYear();
 
         // ========== THEME MANAGEMENT (NEW) ==========
         function initTheme() {
@@ -993,7 +1030,7 @@
         function toggleTheme() {
             const body = document.body;
             const icon = document.getElementById('themeIcon');
-            
+
             if (body.classList.contains('dark-mode')) {
                 body.classList.remove('dark-mode');
                 icon.className = 'fas fa-moon';
@@ -1003,32 +1040,36 @@
                 icon.className = 'fas fa-sun';
                 localStorage.setItem('theme', 'dark');
             }
-            
-            // Re-render chart with new colors
+
+            // Re-render charts with new colors
             if (yearlyLineChart) {
-                const currentYear = getCurrentYear();
-                const yearExpenses = expenses.filter(e => e.date.startsWith(currentYear));
-                const yearIncomes = incomes.filter(i => i.date.startsWith(currentYear));
-                
+                const yearExpenses = expenses.filter(e => e.date.startsWith(selectedYear.toString()));
+                const yearIncomes = incomes.filter(i => i.date.startsWith(selectedYear.toString()));
+
                 const months = {};
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Oct', 'Nov', 'Des'];
-                
+
                 for (let i = 1; i <= 12; i++) {
-                    const monthKey = `${currentYear}-${String(i).padStart(2, '0')}`;
+                    const monthKey = `${selectedYear}-${String(i).padStart(2, '0')}`;
                     months[monthKey] = { exp: 0, inc: 0 };
                 }
-                
+
                 yearExpenses.forEach(e => {
                     const monthKey = e.date.substring(0, 7);
                     if (months[monthKey]) months[monthKey].exp += e.amount;
                 });
-                
+
                 yearIncomes.forEach(i => {
                     const monthKey = i.date.substring(0, 7);
                     if (months[monthKey]) months[monthKey].inc += i.amount;
                 });
-                
+
                 renderYearlyLineChart(months, monthNames);
+            }
+
+            // Re-render year comparison chart with new colors
+            if (yearComparisonChart) {
+                renderYearComparisonChart();
             }
         }
 
@@ -1067,6 +1108,39 @@
 
         function getCurrentYear() {
             return new Date().getFullYear();
+        }
+
+        function getAvailableYears() {
+            const years = new Set();
+
+            expenses.forEach(e => {
+                const year = parseInt(e.date.substring(0, 4));
+                if (!isNaN(year)) years.add(year);
+            });
+
+            incomes.forEach(i => {
+                const year = parseInt(i.date.substring(0, 4));
+                if (!isNaN(year)) years.add(year);
+            });
+
+            // Always include current year
+            years.add(getCurrentYear());
+
+            return Array.from(years).sort((a, b) => b - a); // Sort descending
+        }
+
+        function populateYearSelector() {
+            const selector = document.getElementById('yearSelector');
+            const years = getAvailableYears();
+
+            selector.innerHTML = years.map(year =>
+                `<option value="${year}" ${year === selectedYear ? 'selected' : ''}>${year}</option>`
+            ).join('');
+        }
+
+        function changeYear() {
+            selectedYear = parseInt(document.getElementById('yearSelector').value);
+            renderYearly();
         }
 
         function formatDate(dateString) {
@@ -1347,38 +1421,49 @@
         }
 
         function renderYearly() {
-            const currentYear = getCurrentYear();
-            const yearExpenses = expenses.filter(e => e.date.startsWith(currentYear));
-            const yearIncomes = incomes.filter(i => i.date.startsWith(currentYear));
+            // Populate year selector
+            populateYearSelector();
+
+            const yearExpenses = expenses.filter(e => e.date.startsWith(selectedYear.toString()));
+            const yearIncomes = incomes.filter(i => i.date.startsWith(selectedYear.toString()));
             const expTotal = yearExpenses.reduce((sum, e) => sum + e.amount, 0);
             const incTotal = yearIncomes.reduce((sum, i) => sum + i.amount, 0);
             const balance = calculateBalance(yearExpenses, yearIncomes);
-            
+
+            // Update titles
+            const isCurrentYear = selectedYear === getCurrentYear();
+            document.querySelector('#tahunan .stat-card:nth-child(1) h3').textContent =
+                isCurrentYear ? 'Total Pengeluaran Tahun Ini' : `Total Pengeluaran ${selectedYear}`;
+            document.querySelector('#tahunan .stat-card:nth-child(2) h3').textContent =
+                isCurrentYear ? 'Total Pemasukan Tahun Ini' : `Total Pemasukan ${selectedYear}`;
+            document.querySelector('#tahunan .stat-card:nth-child(3) h3').textContent =
+                isCurrentYear ? 'Balance Tahun Ini' : `Balance ${selectedYear}`;
+
             document.getElementById('yearlyExpenseTotal').textContent = formatRupiah(expTotal);
             document.getElementById('yearlyIncomeTotal').textContent = formatRupiah(incTotal);
             const balanceEl = document.getElementById('yearlyBalance');
             balanceEl.textContent = formatRupiah(balance);
             balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
-            
+
             // Group by month
             const months = {};
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Oct', 'Nov', 'Des'];
-            
+
             for (let i = 1; i <= 12; i++) {
-                const monthKey = `${currentYear}-${String(i).padStart(2, '0')}`;
+                const monthKey = `${selectedYear}-${String(i).padStart(2, '0')}`;
                 months[monthKey] = { exp: 0, inc: 0 };
             }
-            
+
             yearExpenses.forEach(e => {
                 const monthKey = e.date.substring(0, 7);
                 if (months[monthKey]) months[monthKey].exp += e.amount;
             });
-            
+
             yearIncomes.forEach(i => {
                 const monthKey = i.date.substring(0, 7);
                 if (months[monthKey]) months[monthKey].inc += i.amount;
             });
-            
+
             // Render table
             const tbody = document.querySelector('#yearlyTable tbody');
             tbody.innerHTML = Object.entries(months).map(([monthKey, data], index) => {
@@ -1392,9 +1477,13 @@
                     </tr>
                 `;
             }).join('');
-            
+
             // Render line chart
             renderYearlyLineChart(months, monthNames);
+
+            // Render year history and comparison
+            renderYearHistory();
+            renderYearComparisonChart();
         }
 
         function renderYearlyLineChart(months, monthNames) {
@@ -1512,15 +1601,187 @@
         }
 
         function resetYearly() {
-            if (confirm('⚠️ Hapus semua data pengeluaran dan pemasukan tahun ini? Tindakan ini tidak bisa dibatalkan!')) {
-                const currentYear = getCurrentYear();
-                expenses = expenses.filter(e => !e.date.startsWith(currentYear));
-                incomes = incomes.filter(i => !i.date.startsWith(currentYear));
+            if (confirm(`⚠️ Hapus semua data pengeluaran dan pemasukan tahun ${selectedYear}? Tindakan ini tidak bisa dibatalkan!`)) {
+                expenses = expenses.filter(e => !e.date.startsWith(selectedYear.toString()));
+                incomes = incomes.filter(i => !i.date.startsWith(selectedYear.toString()));
                 localStorage.setItem('expenses', JSON.stringify(expenses));
                 localStorage.setItem('incomes', JSON.stringify(incomes));
                 renderYearly();
-                alert('✅ Data tahun ini berhasil dihapus!');
+                alert(`✅ Data tahun ${selectedYear} berhasil dihapus!`);
             }
+        }
+
+        function renderYearHistory() {
+            const years = getAvailableYears();
+            const tbody = document.querySelector('#yearHistoryTable tbody');
+
+            if (years.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--gray); padding: 20px;">
+                            Belum ada data
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const yearData = years.map(year => {
+                const yearExpenses = expenses.filter(e => e.date.startsWith(year.toString()));
+                const yearIncomes = incomes.filter(i => i.date.startsWith(year.toString()));
+                const expTotal = yearExpenses.reduce((sum, e) => sum + e.amount, 0);
+                const incTotal = yearIncomes.reduce((sum, i) => sum + i.amount, 0);
+                const balance = incTotal - expTotal;
+
+                // Calculate average per month (only months with data)
+                const monthsWithData = new Set();
+                yearExpenses.forEach(e => monthsWithData.add(e.date.substring(0, 7)));
+                yearIncomes.forEach(i => monthsWithData.add(i.date.substring(0, 7)));
+                const monthCount = monthsWithData.size || 1;
+                const avgPerMonth = expTotal / monthCount;
+
+                return { year, expTotal, incTotal, balance, avgPerMonth };
+            });
+
+            tbody.innerHTML = yearData.map(data => {
+                const isCurrentYear = data.year === getCurrentYear();
+                const isSelectedYear = data.year === selectedYear;
+                return `
+                    <tr style="${isSelectedYear ? 'background: rgba(255, 20, 147, 0.1);' : ''}">
+                        <td><strong>${data.year}${isCurrentYear ? ' (Sekarang)' : ''}</strong></td>
+                        <td style="color: var(--danger);">${formatRupiah(data.expTotal)}</td>
+                        <td style="color: var(--success);">${formatRupiah(data.incTotal)}</td>
+                        <td style="color: ${data.balance >= 0 ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">
+                            ${formatRupiah(data.balance)}
+                        </td>
+                        <td>${formatRupiah(data.avgPerMonth)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderYearComparisonChart() {
+            // Destroy existing chart if it exists
+            if (yearComparisonChart) {
+                yearComparisonChart.destroy();
+                yearComparisonChart = null;
+            }
+
+            const chartCanvas = document.getElementById('yearComparisonChart');
+            if (!chartCanvas) return;
+
+            const years = getAvailableYears();
+
+            if (years.length === 0) {
+                return;
+            }
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const textColor = isDark ? '#E8E8E8' : '#2C3E50';
+            const gridColor = isDark ? '#2a2a2a' : '#E0E0E0';
+
+            // Prepare data for each year
+            const expenseData = [];
+            const incomeData = [];
+            const balanceData = [];
+
+            years.forEach(year => {
+                const yearExpenses = expenses.filter(e => e.date.startsWith(year.toString()));
+                const yearIncomes = incomes.filter(i => i.date.startsWith(year.toString()));
+                const expTotal = yearExpenses.reduce((sum, e) => sum + e.amount, 0);
+                const incTotal = yearIncomes.reduce((sum, i) => sum + i.amount, 0);
+                const balance = incTotal - expTotal;
+
+                expenseData.push(expTotal);
+                incomeData.push(incTotal);
+                balanceData.push(balance);
+            });
+
+            yearComparisonChart = new Chart(chartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: years,
+                    datasets: [
+                        {
+                            label: 'Pengeluaran',
+                            data: expenseData,
+                            backgroundColor: 'rgba(231, 76, 60, 0.7)',
+                            borderColor: '#E74C3C',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Pemasukan',
+                            data: incomeData,
+                            backgroundColor: 'rgba(39, 174, 96, 0.7)',
+                            borderColor: '#27AE60',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Balance',
+                            data: balanceData,
+                            backgroundColor: balanceData.map(b => b >= 0 ? 'rgba(52, 152, 219, 0.7)' : 'rgba(241, 196, 15, 0.7)'),
+                            borderColor: balanceData.map(b => b >= 0 ? '#3498DB' : '#F1C40F'),
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: textColor,
+                                font: { size: 12 },
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += formatRupiah(context.parsed.y);
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                                drawBorder: true
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    return 'Rp ' + new Intl.NumberFormat('id-ID').format(value);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // ========== ADVICE SYSTEM (NEW) ==========
