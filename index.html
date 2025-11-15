@@ -655,6 +655,19 @@
             .advice-cards {
                 grid-template-columns: 1fr;
             }
+
+            .chart-wrapper {
+                height: 280px;
+            }
+
+            .chart-container {
+                padding: 15px;
+            }
+
+            .chart-title {
+                font-size: 1em;
+                margin-bottom: 10px;
+            }
         }
 
         /* ========== UTILITIES ========== */
@@ -1698,30 +1711,61 @@
             });
 
             yearComparisonChart = new Chart(chartCanvas, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: years,
                     datasets: [
                         {
                             label: 'Pengeluaran',
                             data: expenseData,
-                            backgroundColor: 'rgba(231, 76, 60, 0.7)',
                             borderColor: '#E74C3C',
-                            borderWidth: 2
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#E74C3C',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
                         },
                         {
                             label: 'Pemasukan',
                             data: incomeData,
-                            backgroundColor: 'rgba(39, 174, 96, 0.7)',
                             borderColor: '#27AE60',
-                            borderWidth: 2
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#27AE60',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
                         },
                         {
                             label: 'Balance',
                             data: balanceData,
-                            backgroundColor: balanceData.map(b => b >= 0 ? 'rgba(52, 152, 219, 0.7)' : 'rgba(241, 196, 15, 0.7)'),
-                            borderColor: balanceData.map(b => b >= 0 ? '#3498DB' : '#F1C40F'),
-                            borderWidth: 2
+                            borderColor: '#3498DB',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#3498DB',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            segment: {
+                                borderColor: ctx => {
+                                    const value = ctx.p1.parsed.y;
+                                    return value < 0 ? '#F1C40F' : '#3498DB';
+                                },
+                                backgroundColor: ctx => {
+                                    const value = ctx.p1.parsed.y;
+                                    return value < 0 ? 'rgba(241, 196, 15, 0.1)' : 'rgba(52, 152, 219, 0.1)';
+                                }
+                            }
                         }
                     ]
                 },
@@ -1735,14 +1779,24 @@
                     plugins: {
                         legend: {
                             display: true,
+                            position: 'top',
                             labels: {
                                 color: textColor,
-                                font: { size: 12 },
+                                font: { size: 11 },
                                 usePointStyle: true,
-                                padding: 15
+                                padding: 10,
+                                boxWidth: 6,
+                                boxHeight: 6
                             }
                         },
                         tooltip: {
+                            backgroundColor: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            titleColor: isDark ? '#fff' : '#000',
+                            bodyColor: isDark ? '#fff' : '#000',
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: true,
                             callbacks: {
                                 label: function(context) {
                                     let label = context.dataset.label || '';
@@ -1764,8 +1818,15 @@
                             },
                             ticks: {
                                 color: textColor,
-                                font: { size: 11 },
+                                font: { size: 10 },
+                                maxTicksLimit: 6,
                                 callback: function(value) {
+                                    // Format dengan K untuk ribuan, M untuk jutaan
+                                    if (value >= 1000000) {
+                                        return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                                    } else if (value >= 1000) {
+                                        return 'Rp ' + (value / 1000).toFixed(0) + 'K';
+                                    }
                                     return 'Rp ' + new Intl.NumberFormat('id-ID').format(value);
                                 }
                             }
@@ -1776,7 +1837,9 @@
                             },
                             ticks: {
                                 color: textColor,
-                                font: { size: 11 }
+                                font: { size: 10 },
+                                maxRotation: 0,
+                                minRotation: 0
                             }
                         }
                     }
