@@ -1385,30 +1385,57 @@
             const data = Object.entries(categories).map(([cat, amount]) => amount);
             const labels = Object.keys(categories);
 
+            // Colors for pie chart
+            const colors = [
+                '#4A90E2', '#E74C3C', '#F39C12', '#27AE60', '#9B59B6',
+                '#1ABC9C', '#34495E', '#E67E22', '#95A5A6', '#F1C40F'
+            ];
+
             dailyPieChart = new Chart(ctx, {
-                type: 'line',
+                type: 'pie',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Pengeluaran',
                         data: data,
-                        borderColor: '#4A90E2',
-                        backgroundColor: 'rgba(74,144,226,0.12)',
-                        tension: 0.25,
-                        fill: false,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#4A90E2'
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderColor: colors.slice(0, labels.length).map(color => color),
+                        borderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } },
-                        x: { ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } }
-                    },
                     plugins: {
-                        legend: { labels: { color: isDark ? '#E8E8E8' : '#2C3E50' } }
+                        legend: {
+                            labels: {
+                                color: isDark ? '#E8E8E8' : '#2C3E50',
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const meta = chart.getDatasetMeta(0);
+                                            const style = meta.controller.getStyle(i);
+                                            return {
+                                                text: label + ': ' + formatRupiah(data.datasets[0].data[i]),
+                                                fillStyle: style.backgroundColor,
+                                                strokeStyle: style.borderColor,
+                                                lineWidth: style.borderWidth,
+                                                hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + formatRupiah(context.parsed);
+                                }
+                            }
+                        }
                     }
                 }
             });
