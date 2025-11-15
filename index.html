@@ -908,6 +908,14 @@
                     </div>
                 </div>
 
+                <!-- Monthly Expense Chart by Category -->
+                <div class="chart-container">
+                    <div class="chart-title"><i class="fas fa-chart-pie"></i> Grafik Pengeluaran per Kategori</div>
+                    <div class="chart-wrapper" style="height: 300px;">
+                        <canvas id="monthlyExpenseChart"></canvas>
+                    </div>
+                </div>
+
                 <!-- NEW: Advice Section in Bulanan -->
                 <div class="advice-section" id="adviceSection">
                     <div class="advice-title">
@@ -1025,6 +1033,7 @@
         document.getElementById('incomeDate').valueAsDate = new Date();
 
         // Chart instances
+        let monthlyExpenseChart = null;
         let yearlyLineChart = null;
         let yearComparisonChart = null;
 
@@ -1083,6 +1092,11 @@
             // Re-render year comparison chart with new colors
             if (yearComparisonChart) {
                 renderYearComparisonChart();
+            }
+
+            // Re-render monthly expense chart with new colors
+            if (monthlyExpenseChart) {
+                renderMonthlyChart();
             }
         }
 
@@ -1431,6 +1445,110 @@
             const balanceEl = document.getElementById('monthlyBalance');
             balanceEl.textContent = formatRupiah(balance);
             balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+
+            // Render monthly chart
+            renderMonthlyChart();
+        }
+
+        function renderMonthlyChart() {
+            // Destroy existing chart if it exists
+            if (monthlyExpenseChart) {
+                monthlyExpenseChart.destroy();
+                monthlyExpenseChart = null;
+            }
+
+            const chartCanvas = document.getElementById('monthlyExpenseChart');
+            if (!chartCanvas) return;
+
+            // Get current month expenses
+            const currentMonth = getCurrentMonth();
+            const monthExpenses = expenses.filter(e => e.date.startsWith(currentMonth));
+
+            // If no expenses, show empty state
+            if (monthExpenses.length === 0) {
+                const ctx = chartCanvas.getContext('2d');
+                ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+                ctx.font = '16px Inter, sans-serif';
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.fillText('Belum ada pengeluaran bulan ini', chartCanvas.width / 2, chartCanvas.height / 2);
+                return;
+            }
+
+            // Group by category
+            const categoryData = {};
+            const categoryInfo = {
+                'makan': { label: '🍔 Makan', color: '#FF6384' },
+                'transport': { label: '🚗 Transport', color: '#36A2EB' },
+                'laundry': { label: '👕 Laundry', color: '#FFCE56' },
+                'pulsa': { label: '📱 Pulsa/Internet', color: '#4BC0C0' },
+                'hiburan': { label: '🎮 Hiburan', color: '#9966FF' },
+                'belanja': { label: '🛒 Belanja', color: '#FF9F40' },
+                'lainnya': { label: '📦 Lain-lain', color: '#C9CBCF' }
+            };
+
+            monthExpenses.forEach(expense => {
+                if (!categoryData[expense.category]) {
+                    categoryData[expense.category] = 0;
+                }
+                categoryData[expense.category] += expense.amount;
+            });
+
+            // Prepare data for chart
+            const labels = [];
+            const data = [];
+            const colors = [];
+
+            Object.entries(categoryData).forEach(([category, amount]) => {
+                const info = categoryInfo[category] || { label: category, color: '#999' };
+                labels.push(info.label);
+                data.push(amount);
+                colors.push(info.color);
+            });
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const textColor = isDark ? '#E8E8E8' : '#2C3E50';
+
+            monthlyExpenseChart = new Chart(chartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: isDark ? '#1a1a1a' : '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: textColor,
+                                font: { size: 12 },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + formatRupiah(value) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function renderYearly() {
