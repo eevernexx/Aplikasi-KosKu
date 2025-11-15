@@ -1274,7 +1274,7 @@
             balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
             
             // Render pie chart
-            renderDailyPie(todayExpenses);
+                renderDailyChart(todayExpenses);
             
             // Expenses list
             const expContainer = document.getElementById('dailyTransactions');
@@ -1345,50 +1345,7 @@
             }
         }
 
-        function renderDailyPie(expensesData) {
-            const ctx = document.getElementById('dailyPieChart').getContext('2d');
-            const isDark = document.body.classList.contains('dark-mode');
-            const bgColor = isDark ? '#16181d' : 'white';
-            
-            if (dailyPieChart) dailyPieChart.destroy();
-            
-            if (expensesData.length === 0) {
-                ctx.canvas.style.display = 'none';
-                return;
-            }
-            
-            const categories = {};
-            expensesData.forEach(e => {
-                categories[e.category] = (categories[e.category] || 0) + e.amount;
-            });
-            
-            const data = Object.entries(categories).map(([cat, amount]) => amount);
-            const labels = Object.keys(categories);
-            const colors = ['#4A90E2', '#5CB3FF', '#E74C3C', '#F39C12', '#27AE60', '#95A5A6', '#34495E'];
-            
-            dailyPieChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: isDark ? '#E8E8E8' : '#2C3E50' }
-                        }
-                    }
-                }
-            });
-            ctx.canvas.style.display = 'block';
-        }
+        
 
         function renderMonthly() {
             const currentMonth = getCurrentMonth();
@@ -1404,92 +1361,98 @@
             balanceEl.textContent = formatRupiah(balance);
             balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
             
-            // Render bar charts
-            renderMonthlyExpenseBar(monthExpenses);
-            renderMonthlyIncomeBar(monthIncomes);
+            // Render line charts for monthly (kategori/sumber vs jumlah)
+            renderMonthlyExpenseLine(monthExpenses);
+            renderMonthlyIncomeLine(monthIncomes);
         }
 
-        function renderMonthlyExpenseBar(expensesData) {
-            const ctx = document.getElementById('monthlyExpenseChart').getContext('2d');
+        function renderDailyChart(expensesData) {
+            const ctx = document.getElementById('dailyPieChart').getContext('2d');
             const isDark = document.body.classList.contains('dark-mode');
-            
-            if (monthlyExpenseChart) monthlyExpenseChart.destroy();
-            
+
+            if (dailyPieChart) dailyPieChart.destroy();
+
             if (expensesData.length === 0) {
                 ctx.canvas.style.display = 'none';
                 return;
             }
-            
+
             const categories = {};
             expensesData.forEach(e => {
                 categories[e.category] = (categories[e.category] || 0) + e.amount;
             });
-            
+
             const data = Object.entries(categories).map(([cat, amount]) => amount);
             const labels = Object.keys(categories);
-            
-            monthlyExpenseChart = new Chart(ctx, {
-                type: 'bar',
+
+            dailyPieChart = new Chart(ctx, {
+                type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Pengeluaran',
                         data: data,
-                        backgroundColor: '#4A90E2',
-                        borderRadius: 5
+                        borderColor: '#4A90E2',
+                        backgroundColor: 'rgba(74,144,226,0.12)',
+                        tension: 0.25,
+                        fill: false,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#4A90E2'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { duration: 1000 },
                     scales: {
                         y: { beginAtZero: true, ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } },
                         x: { ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } }
                     },
                     plugins: {
-                        legend: { display: false },
-                        title: { display: false }
+                        legend: { labels: { color: isDark ? '#E8E8E8' : '#2C3E50' } }
                     }
                 }
             });
             ctx.canvas.style.display = 'block';
         }
 
-        function renderMonthlyIncomeBar(incomesData) {
+        function renderMonthlyIncomeLine(incomesData) {
             const ctx = document.getElementById('monthlyIncomeChart').getContext('2d');
             const isDark = document.body.classList.contains('dark-mode');
-            
+
             if (monthlyIncomeChart) monthlyIncomeChart.destroy();
-            
+
             if (incomesData.length === 0) {
                 ctx.canvas.style.display = 'none';
                 return;
             }
-            
+
             const sources = {};
             incomesData.forEach(i => {
                 sources[i.source] = (sources[i.source] || 0) + i.amount;
             });
-            
+
             const data = Object.entries(sources).map(([src, amount]) => amount);
             const labels = Object.keys(sources).map(src => src.replace('-', ' '));
-            
+
             monthlyIncomeChart = new Chart(ctx, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Pemasukan',
                         data: data,
-                        backgroundColor: '#27AE60',
-                        borderRadius: 5
+                        borderColor: '#27AE60',
+                        backgroundColor: 'rgba(39,174,96,0.12)',
+                        tension: 0.25,
+                        fill: false,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#27AE60'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { duration: 1000 },
+                    animation: { duration: 800 },
                     scales: {
                         y: { beginAtZero: true, ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } },
                         x: { ticks: { color: isDark ? '#E8E8E8' : '#2C3E50' } }
