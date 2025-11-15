@@ -895,6 +895,13 @@
                     </div>
                 </div>
 
+                <div class="chart-container">
+                    <div class="chart-title"><i class="fas fa-chart-line"></i> Grafik Harian Bulan Ini (Pengeluaran vs Pemasukan)</div>
+                    <div class="chart-wrapper">
+                        <canvas id="monthlyDailyChart"></canvas>
+                    </div>
+                </div>
+
                 <!-- NEW: Advice Section in Bulanan -->
                 <div class="advice-section" id="adviceSection">
                     <div class="advice-title">
@@ -980,6 +987,7 @@
 
         // Chart instances
         let yearlyLineChart = null;
+        let monthlyDailyChart = null;
 
         // ========== THEME MANAGEMENT (NEW) ==========
         function initTheme() {
@@ -1004,31 +1012,16 @@
                 localStorage.setItem('theme', 'dark');
             }
             
-            // Re-render chart with new colors
-            if (yearlyLineChart) {
-                const currentYear = getCurrentYear();
-                const yearExpenses = expenses.filter(e => e.date.startsWith(currentYear));
-                const yearIncomes = incomes.filter(i => i.date.startsWith(currentYear));
-                
-                const months = {};
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Oct', 'Nov', 'Des'];
-                
-                for (let i = 1; i <= 12; i++) {
-                    const monthKey = `${currentYear}-${String(i).padStart(2, '0')}`;
-                    months[monthKey] = { exp: 0, inc: 0 };
-                }
-                
-                yearExpenses.forEach(e => {
-                    const monthKey = e.date.substring(0, 7);
-                    if (months[monthKey]) months[monthKey].exp += e.amount;
-                });
-                
-                yearIncomes.forEach(i => {
-                    const monthKey = i.date.substring(0, 7);
-                    if (months[monthKey]) months[monthKey].inc += i.amount;
-                });
-                
-                renderYearlyLineChart(months, monthNames);
+            // Re-render charts to apply new theme colors
+            try {
+                renderMonthly();
+            } catch (e) {
+                // ignore
+            }
+            try {
+                renderYearly();
+            } catch (e) {
+                // ignore
             }
         }
 
@@ -1344,6 +1337,9 @@
             const balanceEl = document.getElementById('monthlyBalance');
             balanceEl.textContent = formatRupiah(balance);
             balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+            
+            // Render daily line chart for the current month
+            renderMonthlyDailyLineChart(monthExpenses, monthIncomes);
         }
 
         function renderYearly() {
@@ -1393,8 +1389,96 @@
                 `;
             }).join('');
             
-            // Render line chart
+            // Render line chart for yearly (already implemented)
             renderYearlyLineChart(months, monthNames);
+            
+
+        function renderMonthlyDailyLineChart(monthExpenses, monthIncomes) {
+            // Destroy existing chart
+            if (monthlyDailyChart) {
+                monthlyDailyChart.destroy();
+                monthlyDailyChart = null;
+            }
+
+            const canvas = document.getElementById('monthlyDailyChart');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth(); // 0-based
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Prepare arrays for days
+            const labels = [];
+            const expenseData = [];
+            const incomeData = [];
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayStr = String(d).padStart(2, '0');
+                labels.push(dayStr);
+                const key = `${year}-${String(month + 1).padStart(2, '0')}-${dayStr}`;
+
+                const dayExpTotal = monthExpenses
+                    .filter(e => e.date === key)
+                    .reduce((s, e) => s + e.amount, 0);
+                const dayIncTotal = monthIncomes
+                    .filter(i => i.date === key)
+                    .reduce((s, i) => s + i.amount, 0);
+
+                expenseData.push(dayExpTotal);
+                incomeData.push(dayIncTotal);
+            }
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const textColor = isDark ? '#E8E8E8' : '#2C3E50';
+            const gridColor = isDark ? '#2a2a2a' : '#E0E0E0';
+
+            monthlyDailyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Pengeluaran',
+                            data: expenseData,
+                            borderColor: '#E74C3C',
+                            backgroundColor: 'rgba(231,76,60,0.08)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Pemasukan',
+                            data: incomeData,
+                            borderColor: '#27AE60',
+                            backgroundColor: 'rgba(39,174,96,0.08)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: textColor } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: textColor,
+                                callback: function(value) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(value); }
+                            }
+                        },
+                        x: { ticks: { color: textColor } }
+                    }
+                }
+            });
         }
 
         function renderYearlyLineChart(months, monthNames) {
