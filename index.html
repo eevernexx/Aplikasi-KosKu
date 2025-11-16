@@ -1629,6 +1629,7 @@
 
             // Group by source
             const sourceData = {};
+            const sourceNotes = {}; // Store notes for each source
             const sourceInfo = {
                 'uang-saku': { label: '💰 Uang Saku', color: '#27AE60' },
                 'kerja-parttime': { label: '💼 Kerja Part-time', color: '#3498DB' },
@@ -1639,8 +1640,13 @@
             monthIncomes.forEach(income => {
                 if (!sourceData[income.source]) {
                     sourceData[income.source] = 0;
+                    sourceNotes[income.source] = [];
                 }
                 sourceData[income.source] += income.amount;
+                // Add note if it exists and not empty
+                if (income.note && income.note.trim()) {
+                    sourceNotes[income.source].push(income.note.trim());
+                }
             });
 
             // Prepare data for chart
@@ -1728,20 +1734,44 @@
                             bodyColor: isDark ? '#E8E8E8' : '#2C3E50',
                             borderColor: isDark ? '#444' : '#ddd',
                             borderWidth: 1,
-                            padding: 12,
-                            bodyFont: { size: 13 },
-                            titleFont: { size: 14, weight: 'bold' },
+                            padding: isMobile ? 10 : 12,
+                            bodyFont: { size: isMobile ? 11 : 13 },
+                            titleFont: { size: isMobile ? 12 : 14, weight: 'bold' },
                             callbacks: {
                                 label: function(context) {
                                     const label = context.label || '';
                                     const value = context.parsed || 0;
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((value / total) * 100).toFixed(1);
-                                    return [
+
+                                    // Get the source key from labels
+                                    const dataIndex = context.dataIndex;
+                                    const sourceKeys = Object.keys(sourceData);
+                                    const sourceKey = sourceKeys[dataIndex];
+
+                                    // Build tooltip lines
+                                    const tooltipLines = [
                                         `Nilai: ${formatRupiah(value)}`,
                                         `Persentase: ${percentage}%`,
                                         `Dari total: ${formatRupiah(total)}`
                                     ];
+
+                                    // Add notes if available
+                                    if (sourceKey && sourceNotes[sourceKey] && sourceNotes[sourceKey].length > 0) {
+                                        tooltipLines.push(''); // Empty line for spacing
+                                        tooltipLines.push('📝 Keterangan:');
+                                        sourceNotes[sourceKey].forEach((note, idx) => {
+                                            // Truncate long notes for mobile
+                                            const maxLength = isMobile ? 40 : 60;
+                                            const displayNote = note.length > maxLength
+                                                ? note.substring(0, maxLength) + '...'
+                                                : note;
+                                            const prefix = sourceNotes[sourceKey].length > 1 ? `${idx + 1}. ` : '• ';
+                                            tooltipLines.push(prefix + displayNote);
+                                        });
+                                    }
+
+                                    return tooltipLines;
                                 }
                             }
                         },
