@@ -2780,24 +2780,38 @@
             let touchStartY = 0;
             let touchEndY = 0;
             let touchStartTarget = null;
+            let isSwipping = false; // Prevent multiple swipes at once
             const minSwipeDistance = 50; // Minimum distance for a swipe to be registered
+            const swipeDebounceTime = 300; // Debounce time in ms
 
             const contentArea = document.querySelector('.content');
             if (!contentArea) return;
 
             contentArea.addEventListener('touchstart', function(e) {
-                touchStartX = e.changedTouches[0].screenX;
-                touchStartY = e.changedTouches[0].screenY;
-                touchStartTarget = e.target;
+                // Only register touchstart if not currently swipping
+                if (!isSwipping) {
+                    touchStartX = e.changedTouches[0].screenX;
+                    touchStartY = e.changedTouches[0].screenY;
+                    touchStartTarget = e.target;
+                }
             }, { passive: true });
 
             contentArea.addEventListener('touchend', function(e) {
-                touchEndX = e.changedTouches[0].screenX;
-                touchEndY = e.changedTouches[0].screenY;
-                handleSwipe();
+                // Only handle touchend if not currently swipping
+                if (!isSwipping) {
+                    touchEndX = e.changedTouches[0].screenX;
+                    touchEndY = e.changedTouches[0].screenY;
+                    handleSwipe();
+                }
             }, { passive: true });
 
             function handleSwipe() {
+                // Skip if already swipping
+                if (isSwipping) {
+                    resetTouchVariables();
+                    return;
+                }
+
                 // Skip swipe if touch started on interactive elements
                 if (touchStartTarget) {
                     const tagName = touchStartTarget.tagName.toLowerCase();
@@ -2811,6 +2825,7 @@
                                         touchStartTarget.closest('a');
 
                     if (isInteractive) {
+                        resetTouchVariables();
                         return;
                     }
                 }
@@ -2820,17 +2835,24 @@
 
                 // Only trigger swipe if horizontal distance is greater than vertical (to avoid conflicts with scrolling)
                 if (swipeDistanceX < minSwipeDistance || swipeDistanceY > swipeDistanceX) {
+                    resetTouchVariables();
                     return;
                 }
 
                 // Get current active tab
                 const activeSection = document.querySelector('.section.active');
-                if (!activeSection) return;
+                if (!activeSection) {
+                    resetTouchVariables();
+                    return;
+                }
 
                 const currentTabName = activeSection.id;
                 const currentIndex = tabOrder.indexOf(currentTabName);
 
-                if (currentIndex === -1) return;
+                if (currentIndex === -1) {
+                    resetTouchVariables();
+                    return;
+                }
 
                 let newIndex;
 
@@ -2848,10 +2870,14 @@
                         newIndex = tabOrder.length - 1; // Loop to last tab
                     }
                 } else {
+                    resetTouchVariables();
                     return;
                 }
 
                 const newTabName = tabOrder[newIndex];
+
+                // Set swipping flag to prevent multiple swipes
+                isSwipping = true;
 
                 // Trigger tab change
                 // Find the tab button and trigger click
@@ -2863,6 +2889,21 @@
                         showTabProgrammatically(newTabName, btn);
                     }
                 });
+
+                // Reset touch variables and allow new swipes after debounce time
+                setTimeout(() => {
+                    resetTouchVariables();
+                    isSwipping = false;
+                }, swipeDebounceTime);
+            }
+
+            // Helper function to reset touch variables
+            function resetTouchVariables() {
+                touchStartX = 0;
+                touchEndX = 0;
+                touchStartY = 0;
+                touchEndY = 0;
+                touchStartTarget = null;
             }
 
             // Helper function to show tab programmatically
