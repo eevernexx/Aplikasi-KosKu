@@ -931,8 +931,23 @@
                 <!-- Monthly Expense Chart by Category -->
                 <div class="chart-container">
                     <div class="chart-title"><i class="fas fa-chart-pie"></i> Grafik Pengeluaran per Kategori</div>
-                    <div class="chart-wrapper" style="height: 300px;">
+                    <div class="chart-subtitle" style="color: #888; font-size: 0.85em; margin: -5px 0 15px 0; padding: 0 10px; line-height: 1.5;">
+                        Visualisasi proporsi pengeluaran bulan ini berdasarkan kategori. Hover pada chart untuk melihat detail nilai dan persentase.
+                    </div>
+                    <div class="chart-wrapper" style="height: 320px;">
                         <canvas id="monthlyExpenseChart"></canvas>
+                        <div id="expenseChartEmpty" style="display: none; text-align: center; padding: 60px 20px; color: #999;">
+                            <i class="fas fa-inbox" style="font-size: 3em; margin-bottom: 15px; opacity: 0.5;"></i>
+                            <p style="font-size: 1em; margin: 0;">Belum ada pengeluaran bulan ini</p>
+                        </div>
+                    </div>
+                    <div id="expenseChartSummary" style="margin-top: 15px; padding: 12px; background: rgba(231, 76, 60, 0.1); border-radius: 8px; border-left: 4px solid #E74C3C;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <span style="font-weight: 600; color: var(--text);">
+                                <i class="fas fa-wallet"></i> Total Pengeluaran Bulan Ini:
+                            </span>
+                            <span id="monthlyExpenseTotalChart" style="font-size: 1.1em; font-weight: 700; color: #E74C3C;">Rp 0</span>
+                        </div>
                     </div>
                 </div>
 
@@ -944,6 +959,10 @@
                     </div>
                     <div class="chart-wrapper" style="height: 320px;">
                         <canvas id="monthlyIncomeChart"></canvas>
+                        <div id="incomeChartEmpty" style="display: none; text-align: center; padding: 60px 20px; color: #999;">
+                            <i class="fas fa-inbox" style="font-size: 3em; margin-bottom: 15px; opacity: 0.5;"></i>
+                            <p style="font-size: 1em; margin: 0;">Belum ada pemasukan bulan ini</p>
+                        </div>
                     </div>
                     <div id="incomeChartSummary" style="margin-top: 15px; padding: 12px; background: rgba(39, 174, 96, 0.1); border-radius: 8px; border-left: 4px solid #27AE60;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -1502,25 +1521,38 @@
             }
 
             const chartCanvas = document.getElementById('monthlyExpenseChart');
+            const emptyElement = document.getElementById('expenseChartEmpty');
+            const summaryElement = document.getElementById('monthlyExpenseTotalChart');
             if (!chartCanvas) return;
 
             // Get current month expenses
             const currentMonth = getCurrentMonth();
             const monthExpenses = expenses.filter(e => e.date.startsWith(currentMonth));
 
+            // Calculate and update total expense
+            const totalExpense = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+            if (summaryElement) {
+                summaryElement.textContent = formatRupiah(totalExpense);
+            }
+
             // If no expenses, show empty state
             if (monthExpenses.length === 0) {
-                const ctx = chartCanvas.getContext('2d');
-                ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
-                ctx.font = '16px Inter, sans-serif';
-                ctx.fillStyle = '#999';
-                ctx.textAlign = 'center';
-                ctx.fillText('Belum ada pengeluaran bulan ini', chartCanvas.width / 2, chartCanvas.height / 2);
+                chartCanvas.style.display = 'none';
+                if (emptyElement) {
+                    emptyElement.style.display = 'block';
+                }
                 return;
+            }
+
+            // Hide empty state and show canvas
+            chartCanvas.style.display = 'block';
+            if (emptyElement) {
+                emptyElement.style.display = 'none';
             }
 
             // Group by category
             const categoryData = {};
+            const categoryNotes = {}; // Store notes for each category
             const categoryInfo = {
                 'makan': { label: '🍔 Makan', color: '#FF6384' },
                 'transport': { label: '🚗 Transport', color: '#36A2EB' },
@@ -1534,8 +1566,13 @@
             monthExpenses.forEach(expense => {
                 if (!categoryData[expense.category]) {
                     categoryData[expense.category] = 0;
+                    categoryNotes[expense.category] = [];
                 }
                 categoryData[expense.category] += expense.amount;
+                // Add note if it exists and not empty
+                if (expense.note && expense.note.trim()) {
+                    categoryNotes[expense.category].push(expense.note.trim());
+                }
             });
 
             // Prepare data for chart
@@ -1552,6 +1589,11 @@
 
             const isDark = document.body.classList.contains('dark-mode');
             const textColor = isDark ? '#E8E8E8' : '#2C3E50';
+
+            // Check if mobile
+            const isMobile = window.innerWidth <= 768;
+            const labelFontSize = isMobile ? 10 : 12;
+            const datalabelFontSize = isMobile ? 11 : 13;
 
             monthlyExpenseChart = new Chart(chartCanvas, {
                 type: 'doughnut',
@@ -1574,23 +1616,111 @@
                             position: 'bottom',
                             labels: {
                                 color: textColor,
-                                font: { size: 12 },
-                                padding: 15,
-                                usePointStyle: true
+                                font: {
+                                    size: labelFontSize,
+                                    weight: '600'
+                                },
+                                padding: isMobile ? 10 : 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            const meta = chart.getDatasetMeta(0);
+                                            const style = meta.controller.getStyle(i);
+
+                                            return {
+                                                text: `${label}: ${formatRupiah(value)} (${percentage}%)`,
+                                                fillStyle: style.backgroundColor,
+                                                strokeStyle: style.borderColor,
+                                                lineWidth: style.borderWidth,
+                                                hidden: !chart.getDataVisibility(i),
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            },
+                            onClick: function(e, legendItem, legend) {
+                                const index = legendItem.index;
+                                const chart = legend.chart;
+                                chart.toggleDataVisibility(index);
+                                chart.update();
                             }
                         },
                         tooltip: {
+                            enabled: true,
+                            backgroundColor: isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+                            titleColor: isDark ? '#E8E8E8' : '#2C3E50',
+                            bodyColor: isDark ? '#E8E8E8' : '#2C3E50',
+                            borderColor: isDark ? '#444' : '#ddd',
+                            borderWidth: 1,
+                            padding: isMobile ? 10 : 12,
+                            bodyFont: { size: isMobile ? 11 : 13 },
+                            titleFont: { size: isMobile ? 12 : 14, weight: 'bold' },
                             callbacks: {
                                 label: function(context) {
                                     const label = context.label || '';
                                     const value = context.parsed || 0;
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((value / total) * 100).toFixed(1);
-                                    return label + ': ' + formatRupiah(value) + ' (' + percentage + '%)';
+
+                                    // Get the category key from labels
+                                    const dataIndex = context.dataIndex;
+                                    const categoryKeys = Object.keys(categoryData);
+                                    const categoryKey = categoryKeys[dataIndex];
+
+                                    // Build tooltip lines
+                                    const tooltipLines = [
+                                        `Nilai: ${formatRupiah(value)}`,
+                                        `Persentase: ${percentage}%`,
+                                        `Dari total: ${formatRupiah(total)}`
+                                    ];
+
+                                    // Add notes if available
+                                    if (categoryKey && categoryNotes[categoryKey] && categoryNotes[categoryKey].length > 0) {
+                                        tooltipLines.push(''); // Empty line for spacing
+                                        tooltipLines.push('📝 Keterangan:');
+                                        categoryNotes[categoryKey].forEach((note, idx) => {
+                                            // Truncate long notes for mobile
+                                            const maxLength = isMobile ? 40 : 60;
+                                            const displayNote = note.length > maxLength
+                                                ? note.substring(0, maxLength) + '...'
+                                                : note;
+                                            const prefix = categoryNotes[categoryKey].length > 1 ? `${idx + 1}. ` : '• ';
+                                            tooltipLines.push(prefix + displayNote);
+                                        });
+                                    }
+
+                                    return tooltipLines;
                                 }
                             }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: {
+                                size: datalabelFontSize,
+                                weight: 'bold'
+                            },
+                            formatter: function(value, context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                // Only show label if percentage is >= 5% (to avoid cluttering)
+                                return percentage >= 5 ? percentage + '%' : '';
+                            },
+                            anchor: 'center',
+                            align: 'center',
+                            offset: 0,
+                            textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                            textShadowBlur: 4
                         }
-                    }
+                    },
+                    cutout: '60%'
                 }
             });
         }
@@ -1603,6 +1733,7 @@
             }
 
             const chartCanvas = document.getElementById('monthlyIncomeChart');
+            const emptyElement = document.getElementById('incomeChartEmpty');
             const summaryElement = document.getElementById('monthlyIncomeTotalChart');
             if (!chartCanvas) return;
 
@@ -1618,13 +1749,17 @@
 
             // If no incomes, show empty state
             if (monthIncomes.length === 0) {
-                const ctx = chartCanvas.getContext('2d');
-                ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
-                ctx.font = '16px Inter, sans-serif';
-                ctx.fillStyle = '#999';
-                ctx.textAlign = 'center';
-                ctx.fillText('Belum ada pemasukan bulan ini', chartCanvas.width / 2, chartCanvas.height / 2);
+                chartCanvas.style.display = 'none';
+                if (emptyElement) {
+                    emptyElement.style.display = 'block';
+                }
                 return;
+            }
+
+            // Hide empty state and show canvas
+            chartCanvas.style.display = 'block';
+            if (emptyElement) {
+                emptyElement.style.display = 'none';
             }
 
             // Group by source
@@ -2636,6 +2771,115 @@
                 }
             }, 250); // Wait 250ms after resize ends
         });
+
+        // ========== SWIPE NAVIGATION FOR TABS ==========
+        (function() {
+            const tabOrder = ['tambah', 'harian', 'bulanan', 'tahunan', 'tugas', 'kegiatan'];
+            let touchStartX = 0;
+            let touchEndX = 0;
+            let touchStartY = 0;
+            let touchEndY = 0;
+            const minSwipeDistance = 50; // Minimum distance for a swipe to be registered
+
+            const contentArea = document.querySelector('.content');
+            if (!contentArea) return;
+
+            contentArea.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
+
+            contentArea.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                touchEndY = e.changedTouches[0].screenY;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                const swipeDistanceX = Math.abs(touchEndX - touchStartX);
+                const swipeDistanceY = Math.abs(touchEndY - touchStartY);
+
+                // Only trigger swipe if horizontal distance is greater than vertical (to avoid conflicts with scrolling)
+                if (swipeDistanceX < minSwipeDistance || swipeDistanceY > swipeDistanceX) {
+                    return;
+                }
+
+                // Get current active tab
+                const activeSection = document.querySelector('.section.active');
+                if (!activeSection) return;
+
+                const currentTabName = activeSection.id;
+                const currentIndex = tabOrder.indexOf(currentTabName);
+
+                if (currentIndex === -1) return;
+
+                let newIndex;
+
+                // Swipe left -> next tab (swipe to left means moving forward)
+                if (touchEndX < touchStartX) {
+                    newIndex = currentIndex + 1;
+                    if (newIndex >= tabOrder.length) {
+                        newIndex = 0; // Loop back to first tab
+                    }
+                }
+                // Swipe right -> previous tab (swipe to right means moving backward)
+                else if (touchEndX > touchStartX) {
+                    newIndex = currentIndex - 1;
+                    if (newIndex < 0) {
+                        newIndex = tabOrder.length - 1; // Loop to last tab
+                    }
+                } else {
+                    return;
+                }
+
+                const newTabName = tabOrder[newIndex];
+
+                // Trigger tab change
+                // Find the tab button and trigger click
+                const tabButtons = document.querySelectorAll('.tab');
+                tabButtons.forEach(btn => {
+                    const onclickAttr = btn.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes(`'${newTabName}'`)) {
+                        // Manually call showTab instead of clicking to avoid event issues
+                        showTabProgrammatically(newTabName, btn);
+                    }
+                });
+            }
+
+            // Helper function to show tab programmatically
+            function showTabProgrammatically(tabName, tabButton) {
+                // Hide all sections
+                document.querySelectorAll('.section').forEach(section => {
+                    section.classList.remove('active');
+                });
+
+                // Remove active from all tabs
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+
+                // Show selected section
+                const targetSection = document.getElementById(tabName);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                }
+
+                // Activate target tab button
+                if (tabButton) {
+                    tabButton.classList.add('active');
+                }
+
+                // Refresh data for the tab
+                if (tabName === 'harian') renderDaily();
+                if (tabName === 'bulanan') {
+                    renderMonthly();
+                    renderAdvice();
+                }
+                if (tabName === 'tahunan') renderYearly();
+                if (tabName === 'tugas') renderTasks();
+                if (tabName === 'kegiatan') renderActivities();
+            }
+        })();
     </script>
 </body>
 </html>
