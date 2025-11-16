@@ -916,6 +916,14 @@
                     </div>
                 </div>
 
+                <!-- Monthly Income Chart by Source -->
+                <div class="chart-container">
+                    <div class="chart-title"><i class="fas fa-chart-pie"></i> Grafik Pemasukan per Sumber</div>
+                    <div class="chart-wrapper" style="height: 300px;">
+                        <canvas id="monthlyIncomeChart"></canvas>
+                    </div>
+                </div>
+
                 <!-- NEW: Advice Section in Bulanan -->
                 <div class="advice-section" id="adviceSection">
                     <div class="advice-title">
@@ -1034,6 +1042,7 @@
 
         // Chart instances
         let monthlyExpenseChart = null;
+        let monthlyIncomeChart = null;
         let yearlyLineChart = null;
         let yearComparisonChart = null;
 
@@ -1094,9 +1103,12 @@
                 renderYearComparisonChart();
             }
 
-            // Re-render monthly expense chart with new colors
+            // Re-render monthly charts with new colors
             if (monthlyExpenseChart) {
                 renderMonthlyChart();
+            }
+            if (monthlyIncomeChart) {
+                renderMonthlyIncomeChart();
             }
         }
 
@@ -1446,8 +1458,9 @@
             balanceEl.textContent = formatRupiah(balance);
             balanceEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
 
-            // Render monthly chart
+            // Render monthly charts
             renderMonthlyChart();
+            renderMonthlyIncomeChart();
         }
 
         function renderMonthlyChart() {
@@ -1510,6 +1523,104 @@
             const textColor = isDark ? '#E8E8E8' : '#2C3E50';
 
             monthlyExpenseChart = new Chart(chartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: isDark ? '#1a1a1a' : '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: textColor,
+                                font: { size: 12 },
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + formatRupiah(value) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMonthlyIncomeChart() {
+            // Destroy existing chart if it exists
+            if (monthlyIncomeChart) {
+                monthlyIncomeChart.destroy();
+                monthlyIncomeChart = null;
+            }
+
+            const chartCanvas = document.getElementById('monthlyIncomeChart');
+            if (!chartCanvas) return;
+
+            // Get current month incomes
+            const currentMonth = getCurrentMonth();
+            const monthIncomes = incomes.filter(i => i.date.startsWith(currentMonth));
+
+            // If no incomes, show empty state
+            if (monthIncomes.length === 0) {
+                const ctx = chartCanvas.getContext('2d');
+                ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+                ctx.font = '16px Inter, sans-serif';
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.fillText('Belum ada pemasukan bulan ini', chartCanvas.width / 2, chartCanvas.height / 2);
+                return;
+            }
+
+            // Group by source
+            const sourceData = {};
+            const sourceInfo = {
+                'uang-saku': { label: '💰 Uang Saku', color: '#27AE60' },
+                'kerja-parttime': { label: '💼 Kerja Part-time', color: '#3498DB' },
+                'beasiswa': { label: '🎓 Beasiswa', color: '#9B59B6' },
+                'lainnya': { label: '📦 Lainnya', color: '#95A5A6' }
+            };
+
+            monthIncomes.forEach(income => {
+                if (!sourceData[income.source]) {
+                    sourceData[income.source] = 0;
+                }
+                sourceData[income.source] += income.amount;
+            });
+
+            // Prepare data for chart
+            const labels = [];
+            const data = [];
+            const colors = [];
+
+            Object.entries(sourceData).forEach(([source, amount]) => {
+                const info = sourceInfo[source] || { label: source, color: '#999' };
+                labels.push(info.label);
+                data.push(amount);
+                colors.push(info.color);
+            });
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const textColor = isDark ? '#E8E8E8' : '#2C3E50';
+
+            monthlyIncomeChart = new Chart(chartCanvas, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
