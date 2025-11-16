@@ -2779,6 +2779,7 @@
             let touchEndX = 0;
             let touchStartY = 0;
             let touchEndY = 0;
+            let touchStartTarget = null;
             const minSwipeDistance = 50; // Minimum distance for a swipe to be registered
 
             const contentArea = document.querySelector('.content');
@@ -2787,6 +2788,7 @@
             contentArea.addEventListener('touchstart', function(e) {
                 touchStartX = e.changedTouches[0].screenX;
                 touchStartY = e.changedTouches[0].screenY;
+                touchStartTarget = e.target;
             }, { passive: true });
 
             contentArea.addEventListener('touchend', function(e) {
@@ -2796,6 +2798,23 @@
             }, { passive: true });
 
             function handleSwipe() {
+                // Skip swipe if touch started on interactive elements
+                if (touchStartTarget) {
+                    const tagName = touchStartTarget.tagName.toLowerCase();
+                    const isInteractive = tagName === 'button' ||
+                                        tagName === 'input' ||
+                                        tagName === 'select' ||
+                                        tagName === 'textarea' ||
+                                        tagName === 'a' ||
+                                        touchStartTarget.closest('button') ||
+                                        touchStartTarget.closest('input') ||
+                                        touchStartTarget.closest('a');
+
+                    if (isInteractive) {
+                        return;
+                    }
+                }
+
                 const swipeDistanceX = Math.abs(touchEndX - touchStartX);
                 const swipeDistanceY = Math.abs(touchEndY - touchStartY);
 
