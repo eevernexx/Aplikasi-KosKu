@@ -7,7 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
     <style>
         /* ========== RESET & VARIABLES ========== */
         * {
@@ -668,6 +669,25 @@
                 font-size: 1em;
                 margin-bottom: 10px;
             }
+
+            .chart-subtitle {
+                font-size: 0.75em !important;
+                margin: -5px 0 10px 0 !important;
+                padding: 0 5px !important;
+            }
+
+            #incomeChartSummary {
+                padding: 10px !important;
+                margin-top: 12px !important;
+            }
+
+            #incomeChartSummary span {
+                font-size: 0.9em !important;
+            }
+
+            #monthlyIncomeTotalChart {
+                font-size: 1em !important;
+            }
         }
 
         /* ========== UTILITIES ========== */
@@ -919,8 +939,19 @@
                 <!-- Monthly Income Chart by Source -->
                 <div class="chart-container">
                     <div class="chart-title"><i class="fas fa-chart-pie"></i> Grafik Pemasukan per Sumber</div>
-                    <div class="chart-wrapper" style="height: 300px;">
+                    <div class="chart-subtitle" style="color: #888; font-size: 0.85em; margin: -5px 0 15px 0; padding: 0 10px; line-height: 1.5;">
+                        Visualisasi proporsi pemasukan bulan ini berdasarkan sumber pendapatan. Hover pada chart untuk melihat detail nilai dan persentase.
+                    </div>
+                    <div class="chart-wrapper" style="height: 320px;">
                         <canvas id="monthlyIncomeChart"></canvas>
+                    </div>
+                    <div id="incomeChartSummary" style="margin-top: 15px; padding: 12px; background: rgba(39, 174, 96, 0.1); border-radius: 8px; border-left: 4px solid #27AE60;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <span style="font-weight: 600; color: var(--text);">
+                                <i class="fas fa-coins"></i> Total Pemasukan Bulan Ini:
+                            </span>
+                            <span id="monthlyIncomeTotalChart" style="font-size: 1.1em; font-weight: 700; color: #27AE60;">Rp 0</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1572,11 +1603,18 @@
             }
 
             const chartCanvas = document.getElementById('monthlyIncomeChart');
+            const summaryElement = document.getElementById('monthlyIncomeTotalChart');
             if (!chartCanvas) return;
 
             // Get current month incomes
             const currentMonth = getCurrentMonth();
             const monthIncomes = incomes.filter(i => i.date.startsWith(currentMonth));
+
+            // Calculate and update total income
+            const totalIncome = monthIncomes.reduce((sum, i) => sum + i.amount, 0);
+            if (summaryElement) {
+                summaryElement.textContent = formatRupiah(totalIncome);
+            }
 
             // If no incomes, show empty state
             if (monthIncomes.length === 0) {
@@ -1620,6 +1658,11 @@
             const isDark = document.body.classList.contains('dark-mode');
             const textColor = isDark ? '#E8E8E8' : '#2C3E50';
 
+            // Check if mobile
+            const isMobile = window.innerWidth <= 768;
+            const labelFontSize = isMobile ? 10 : 12;
+            const datalabelFontSize = isMobile ? 11 : 13;
+
             monthlyIncomeChart = new Chart(chartCanvas, {
                 type: 'doughnut',
                 data: {
@@ -1641,24 +1684,93 @@
                             position: 'bottom',
                             labels: {
                                 color: textColor,
-                                font: { size: 12 },
-                                padding: 15,
-                                usePointStyle: true
+                                font: {
+                                    size: labelFontSize,
+                                    weight: '600'
+                                },
+                                padding: isMobile ? 10 : 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            const meta = chart.getDatasetMeta(0);
+                                            const style = meta.controller.getStyle(i);
+
+                                            return {
+                                                text: `${label}: ${formatRupiah(value)} (${percentage}%)`,
+                                                fillStyle: style.backgroundColor,
+                                                strokeStyle: style.borderColor,
+                                                lineWidth: style.borderWidth,
+                                                hidden: !chart.getDataVisibility(i),
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            },
+                            onClick: function(e, legendItem, legend) {
+                                const index = legendItem.index;
+                                const chart = legend.chart;
+                                chart.toggleDataVisibility(index);
+                                chart.update();
                             }
                         },
                         tooltip: {
+                            enabled: true,
+                            backgroundColor: isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+                            titleColor: isDark ? '#E8E8E8' : '#2C3E50',
+                            bodyColor: isDark ? '#E8E8E8' : '#2C3E50',
+                            borderColor: isDark ? '#444' : '#ddd',
+                            borderWidth: 1,
+                            padding: 12,
+                            bodyFont: { size: 13 },
+                            titleFont: { size: 14, weight: 'bold' },
                             callbacks: {
                                 label: function(context) {
                                     const label = context.label || '';
                                     const value = context.parsed || 0;
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((value / total) * 100).toFixed(1);
-                                    return label + ': ' + formatRupiah(value) + ' (' + percentage + '%)';
+                                    return [
+                                        `Nilai: ${formatRupiah(value)}`,
+                                        `Persentase: ${percentage}%`,
+                                        `Dari total: ${formatRupiah(total)}`
+                                    ];
                                 }
                             }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: {
+                                size: datalabelFontSize,
+                                weight: 'bold'
+                            },
+                            formatter: function(value, context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                // Only show label if percentage is >= 5% (to avoid cluttering)
+                                return percentage >= 5 ? percentage + '%' : '';
+                            },
+                            anchor: 'center',
+                            align: 'center',
+                            offset: 0,
+                            textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                            textShadowBlur: 4
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            bottom: isMobile ? 5 : 10
                         }
                     }
-                }
+                },
+                plugins: [ChartDataLabels]
             });
         }
 
@@ -2475,6 +2587,25 @@
         renderTasks();
         renderActivities();
         renderAdvice(); // NEW: Initialize advice on load
+
+        // ========== RESPONSIVE CHART ON WINDOW RESIZE ==========
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            // Debounce resize event to avoid excessive re-rendering
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                // Re-render charts with updated responsive values
+                const activeTab = document.querySelector('.tab-btn.active');
+                if (activeTab) {
+                    const tabId = activeTab.getAttribute('onclick').match(/showTab\('(.+?)'\)/)[1];
+                    if (tabId === 'bulanan') {
+                        renderMonthly();
+                    } else if (tabId === 'tahunan') {
+                        renderYearly();
+                    }
+                }
+            }, 250); // Wait 250ms after resize ends
+        });
     </script>
 </body>
 </html>
